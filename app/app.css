@@ -1,0 +1,28 @@
+@import "tailwindcss" source(".");
+
+@theme {
+  --font-sans: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: "Instrument Serif", Georgia, serif;
+}
+
+html,
+body {
+  @apply min-h-screen bg-[#f4f0e8] text-[#141414];
+
+  @media (prefers-color-scheme: dark) {
+    color-scheme: light;
+  }
+}
+
+body {
+  background-image:
+    linear-gradient(rgba(20, 20, 20, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 20, 20, 0.055) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+::selection {
+  background: #141414;
+  color: #f4f0e8;
+}
