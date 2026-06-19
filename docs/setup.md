@@ -41,3 +41,25 @@ Use local D1 while developing:
 ```bash
 npm run db:migrate:local
 ```
+
+## GitHub Actions Deploys
+
+Pushing to `main` runs `.github/workflows/deploy.yml`.
+
+The workflow:
+
+1. Installs dependencies with `npm ci`.
+2. Runs `npm run typecheck`.
+3. Applies remote D1 migrations with `npm run db:migrate:remote`.
+4. Deploys the Worker with `npm run deploy`.
+
+Add these repository secrets in GitHub:
+
+```txt
+CLOUDFLARE_ACCOUNT_ID=501c78ae99b9a2acd6fff4bdd12f30b4
+CLOUDFLARE_API_TOKEN=<token from Cloudflare>
+```
+
+Create the Cloudflare API token from the Cloudflare dashboard. It needs enough
+access to deploy Workers and apply D1 migrations. Keep it scoped to this
+account and the `uuid.social` zone where possible.
