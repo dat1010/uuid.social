@@ -1,81 +1,145 @@
-# Welcome to uuid.social!
+# uuid.social
 
-# Welcome to React Router!
+[uuid.social](https://uuid.social) is a small social-network experiment where a
+random UUID is the only account credential.
 
-A modern, production-ready template for building full-stack React applications using React Router.
+There are no emails, passwords, or recovery flows. A new account receives one
+UUID, shown once during signup. Losing it means losing access to that account.
 
-## Features
+## Current Features
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+- Unique public usernames
+- UUID-only signup and login
+- One-time UUID reveal with copy support
+- Server-side sessions stored in Cloudflare D1
+- Public global timeline
+- D1-backed posts associated with authenticated users
+- Logout and protected app routes
+- Automatic production deploys from `main`
 
-## Getting Started
+## Security Model
 
-### Installation
+UUID credentials are generated server-side with `crypto.randomUUID()`. The raw
+UUID is never stored in D1. Instead, the Worker stores an HMAC-SHA-256 hash keyed
+with the server-only `AUTH_PEPPER` secret.
 
-Install the dependencies:
+Successful login exchanges the UUID for an independent 256-bit random session
+token. The browser receives that token in an `HttpOnly`, `SameSite=Lax` cookie;
+only its SHA-256 hash is stored in D1.
+
+The UUID must never appear in URLs, logs, profile data, or timeline content.
+Signup, login, and authenticated pages use `Cache-Control: no-store`.
+
+There is intentionally no account-recovery mechanism.
+
+## Stack
+
+- TypeScript
+- React 19 and React Router framework mode
+- Cloudflare Workers
+- Cloudflare D1
+- Drizzle ORM
+- Tailwind CSS
+- Wrangler
+- GitHub Actions
+
+R2-backed profile images and Terraform-managed infrastructure are planned but
+are not active yet.
+
+## Local Development
+
+Requirements:
+
+- Node.js 22
+- npm
+- A Cloudflare account for remote operations
+
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-### Development
+Create the local secret file:
 
-Start the development server with HMR:
+```bash
+cp .dev.vars.example .dev.vars
+```
+
+Replace the placeholder with a long random value:
+
+```txt
+AUTH_PEPPER=<long-random-secret>
+```
+
+Initialize the local D1 database:
+
+```bash
+npm run db:migrate:local
+```
+
+Start the app:
 
 ```bash
 npm run dev
 ```
 
-Your application will be available at `http://localhost:5173`.
+The local URL is normally `http://localhost:5173`.
 
-## Previewing the Production Build
-
-Preview the production build locally:
+## Verification
 
 ```bash
-npm run preview
+npm run typecheck
+npm run build
 ```
 
-## Building for Production
+## Database Migrations
 
-Create a production build:
+Create a migration after changing `app/db/schema.ts`:
 
 ```bash
-npm run build
+npm run db:generate
+```
+
+Apply migrations locally:
+
+```bash
+npm run db:migrate:local
+```
+
+Apply migrations to the production D1 database:
+
+```bash
+npm run db:migrate:remote
 ```
 
 ## Deployment
 
-Deployment is done using the Wrangler CLI.
+Pushing to `main` runs `.github/workflows/deploy.yml`. The workflow:
 
-To build and deploy directly to production:
+1. Installs dependencies with `npm ci`.
+2. Runs the TypeScript checks.
+3. Applies pending remote D1 migrations.
+4. Deploys the Worker to Cloudflare.
 
-```sh
+GitHub repository secrets:
+
+```txt
+CLOUDFLARE_ACCOUNT_ID
+CLOUDFLARE_API_TOKEN
+```
+
+The Cloudflare API token needs account-level permission to edit Workers and D1,
+plus read access to the `uuid.social` zone. DNS edit access is required when
+custom-domain records change.
+
+Manual deployment is also available:
+
+```bash
 npm run deploy
 ```
 
-To deploy a preview URL:
+Do not rotate or delete the production `AUTH_PEPPER` after accounts exist.
+Changing it makes every existing UUID hash unverifiable.
 
-```sh
-npx wrangler versions upload
-```
-
-You can then promote a version to production after verification or roll it out progressively.
-
-```sh
-npx wrangler versions deploy
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
+More operational details are in [`docs/setup.md`](docs/setup.md).
