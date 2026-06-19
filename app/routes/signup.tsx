@@ -7,6 +7,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Signup() {
+  const [username, setUsername] = useState("");
   const [generatedUuid, setGeneratedUuid] = useState("");
   const [copyLabel, setCopyLabel] = useState("Copy UUID");
   const [savedUuid, setSavedUuid] = useState(false);
@@ -25,6 +26,21 @@ export default function Signup() {
     setCopyLabel("Copy UUID");
   }
 
+  function continueToTimeline(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!generatedUuid || !savedUuid) return;
+
+    const search = new URLSearchParams();
+    const cleanUsername = username.trim();
+
+    if (cleanUsername) {
+      search.set("username", cleanUsername);
+    }
+
+    window.location.assign(`/home?${search.toString()}`);
+  }
+
   return (
     <main className="grid min-h-screen place-items-center px-5 py-5">
       <section className="w-full max-w-2xl border-2 border-[#141414] bg-[#e9f7f1] p-5 shadow-[8px_8px_0_#e34b2f] md:p-8">
@@ -39,15 +55,17 @@ export default function Signup() {
           </p>
         </div>
 
-        <form action="/home" className="grid gap-3">
+        <form className="grid gap-3" onSubmit={continueToTimeline}>
           <label className="grid gap-2 text-xs font-bold uppercase">
             Public username
             <input
               className="border-2 border-[#141414] bg-white px-4 py-3 text-sm font-normal normal-case outline-none"
               autoComplete="username"
               name="username"
+              onChange={(event) => setUsername(event.target.value)}
               placeholder="choose-a-name"
               type="text"
+              value={username}
             />
           </label>
           <button
@@ -65,7 +83,6 @@ export default function Signup() {
                 <input
                   className="border-2 border-[#141414] bg-[#fffdf6] px-4 py-3 text-sm font-normal normal-case outline-none"
                   autoComplete="new-password"
-                  name="password"
                   readOnly
                   type="text"
                   value={generatedUuid}
@@ -94,7 +111,7 @@ export default function Signup() {
 
           <button
             className="border-2 border-[#141414] bg-[#141414] px-5 py-3 text-sm font-bold uppercase text-white disabled:cursor-not-allowed disabled:bg-[#8f8a81]"
-            disabled={!generatedUuid || !savedUuid}
+            disabled={!generatedUuid || !savedUuid || !username.trim()}
           >
             Continue to timeline
           </button>

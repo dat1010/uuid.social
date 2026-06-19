@@ -5,6 +5,11 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Login() {
+  function enterTimeline(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    window.location.assign("/home");
+  }
+
   return (
     <main className="grid min-h-screen place-items-center px-5 py-5">
       <section className="w-full max-w-xl border-2 border-[#141414] bg-[#fffdf6] p-5 shadow-[8px_8px_0_#141414] md:p-8">
@@ -18,7 +23,7 @@ export default function Login() {
           </p>
         </div>
 
-        <form action="/home" className="grid gap-3">
+        <form className="grid gap-3" onSubmit={enterTimeline}>
           <label className="grid gap-2 text-xs font-bold uppercase">
             Your UUID
             <input
