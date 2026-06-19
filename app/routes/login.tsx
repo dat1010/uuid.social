@@ -46,45 +46,63 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function Login({ actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
+  const isPending = navigation.state !== "idle";
 
   return (
-    <main className="grid min-h-screen place-items-center px-5 py-5">
-      <section className="w-full max-w-xl border-2 border-[#141414] bg-[#fffdf6] p-5 shadow-[8px_8px_0_#141414] md:p-8">
-        <a className="text-sm font-bold uppercase tracking-[0.18em]" href="/">
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      <header className="navbar bg-base-100 shadow-sm px-6">
+        <a href="/" className="font-bold tracking-widest uppercase text-sm">
           uuid.social
         </a>
-        <div className="my-8">
-          <h1 className="font-serif text-6xl">Sign in</h1>
-          <p className="mt-3 text-sm leading-6">
-            Paste the UUID you saved when you created your account.
-          </p>
-        </div>
+      </header>
 
-        <Form className="grid gap-3" method="post">
-          <label className="grid gap-2 text-xs font-bold uppercase">
-            Your UUID
-            <input
-              className="border-2 border-[#141414] bg-white px-4 py-3 text-sm font-normal normal-case outline-none"
-              autoComplete="current-password"
-              name="password"
-              placeholder="00000000-0000-0000-0000-000000000000"
-              required
-              type="password"
-            />
-          </label>
-          {actionData?.error && (
-            <p className="border-2 border-[#141414] bg-[#e9f7f1] p-3 text-sm">
-              {actionData.error}
-            </p>
-          )}
-          <button
-            className="border-2 border-[#141414] bg-[#141414] px-5 py-3 text-sm font-bold uppercase text-white disabled:cursor-wait disabled:bg-[#8f8a81]"
-            disabled={navigation.state !== "idle"}
-          >
-            {navigation.state === "submitting" ? "Signing in..." : "Enter timeline"}
-          </button>
-        </Form>
-      </section>
-    </main>
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="card bg-base-100 shadow-lg w-full max-w-md">
+          <div className="card-body gap-6">
+            <div>
+              <h1 className="card-title text-2xl">Sign in</h1>
+              <p className="text-base-content/60 text-sm mt-1">
+                Paste the UUID you saved when you created your account.
+              </p>
+            </div>
+
+            <Form className="flex flex-col gap-4" method="post">
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend">Your UUID</legend>
+                <input
+                  className="input input-bordered w-full font-mono"
+                  autoComplete="current-password"
+                  name="password"
+                  placeholder="00000000-0000-0000-0000-000000000000"
+                  required
+                  type="password"
+                />
+              </fieldset>
+
+              {actionData?.error && (
+                <div role="alert" className="alert alert-error text-sm py-3">
+                  <span>{actionData.error}</span>
+                </div>
+              )}
+
+              <button
+                className="btn btn-primary w-full"
+                disabled={isPending}
+              >
+                {isPending ? "Signing in..." : "Enter timeline"}
+              </button>
+            </Form>
+
+            <div className="divider text-xs text-base-content/40 my-0">
+              no account?
+            </div>
+
+            <a href="/signup" className="btn btn-outline w-full">
+              Create one
+            </a>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
