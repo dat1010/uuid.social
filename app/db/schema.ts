@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  type AnySQLiteColumn,
+  index,
+  integer,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable(
   "users",
@@ -25,6 +31,9 @@ export const records = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id),
+    parentRecordId: text("parent_record_id").references(
+      (): AnySQLiteColumn => records.id,
+    ),
     body: text("body").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
@@ -32,6 +41,7 @@ export const records = sqliteTable(
   (table) => [
     index("records_created_at_idx").on(table.createdAt),
     index("records_user_id_idx").on(table.userId),
+    index("records_parent_record_id_idx").on(table.parentRecordId),
   ],
 );
 
@@ -70,9 +80,15 @@ export const userRelations = relations(users, ({ many }) => ({
   records: many(records),
 }));
 
-export const recordRelations = relations(records, ({ one }) => ({
+export const recordRelations = relations(records, ({ many, one }) => ({
   author: one(users, {
     fields: [records.userId],
     references: [users.id],
   }),
+  parent: one(records, {
+    fields: [records.parentRecordId],
+    references: [records.id],
+    relationName: "recordReplies",
+  }),
+  replies: many(records, { relationName: "recordReplies" }),
 }));

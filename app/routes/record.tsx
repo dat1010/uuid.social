@@ -1,12 +1,16 @@
-import { and, eq, isNull } from "drizzle-orm";
-import { Form, Link } from "react-router";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import type { Route } from "./+types/record";
 import { RecordCard } from "../components/RecordCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { createDb } from "../db/client.server";
 import { records, users } from "../db/schema";
-import { getCurrentUser, validateUuid } from "../services/auth.server";
+import {
+  getCurrentUser,
+  requireUser,
+  validateUuid,
+} from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 
 export function meta({ data }: Route.MetaArgs) {
@@ -32,7 +36,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
 
   const env = getCloudflareEnv(context);
   const db = createDb(env.DB);
-  const [currentUser, recordRows] = await Promise.all([
+  const [currentUser, recordRows, replyRows] = await Promise.all([
     getCurrentUser(request, context),
     db
       .select({
@@ -41,11 +45,30 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
         displayName: users.displayName,
         body: records.body,
         createdAt: records.createdAt,
+        replyCount: replyCountSql,
       })
       .from(records)
       .innerJoin(users, eq(records.userId, users.id))
       .where(and(eq(records.id, uuid), isNull(records.deletedAt)))
       .limit(1),
+    db
+      .select({
+        id: records.id,
+        username: users.username,
+        displayName: users.displayName,
+        body: records.body,
+        createdAt: records.createdAt,
+        replyCount: replyCountSql,
+      })
+      .from(records)
+      .innerJoin(users, eq(records.userId, users.id))
+      .where(
+        and(
+          eq(records.parentRecordId, uuid),
+          isNull(records.deletedAt),
+        ),
+      )
+      .orderBy(asc(records.createdAt)),
   ]);
   const [record] = recordRows;
 
@@ -59,13 +82,63 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
       ...record,
       displayName: record.displayName || record.username,
       createdAt: record.createdAt.toISOString(),
+      replyCount: Number(record.replyCount),
     },
+    replies: replyRows.map((reply) => ({
+      ...reply,
+      displayName: reply.displayName || reply.username,
+      createdAt: reply.createdAt.toISOString(),
+      replyCount: Number(reply.replyCount),
+    })),
   };
 }
 
-export default function Record({ loaderData }: Route.ComponentProps) {
-  const { currentUser, record } = loaderData;
+export async function action({ request, context, params }: Route.ActionArgs) {
+  const currentUser = await requireUser(request, context);
+  const uuid = params.uuid?.toLowerCase();
+  if (!uuid || !validateUuid(uuid)) {
+    throw new Response("Not Found", { status: 404, statusText: "Not Found" });
+  }
+
+  const formData = await request.formData();
+  const body = String(formData.get("body") ?? "").trim();
+  if (!body || body.length > 500) {
+    return data(
+      { error: "Replies must contain between 1 and 500 characters." },
+      { status: 400 },
+    );
+  }
+
+  const env = getCloudflareEnv(context);
+  const db = createDb(env.DB);
+  const [parentRecord] = await db
+    .select({ id: records.id })
+    .from(records)
+    .where(and(eq(records.id, uuid), isNull(records.deletedAt)))
+    .limit(1);
+
+  if (!parentRecord) {
+    throw new Response("Not Found", { status: 404, statusText: "Not Found" });
+  }
+
+  await db.insert(records).values({
+    id: crypto.randomUUID(),
+    userId: currentUser.id,
+    parentRecordId: parentRecord.id,
+    body,
+    createdAt: new Date(),
+  });
+
+  return redirect(`/record/${uuid}`);
+}
+
+export default function Record({ loaderData, actionData }: Route.ComponentProps) {
+  const navigation = useNavigation();
+  const { currentUser, record, replies } = loaderData;
   const homeUrl = currentUser ? "/home" : "/";
+  const isReplying =
+    navigation.state === "submitting" &&
+    navigation.formAction === `/record/${record.id}`;
 
   return (
     <div className="min-h-screen bg-base-200">
@@ -105,10 +178,75 @@ export default function Record({ loaderData }: Route.ComponentProps) {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 lg:px-8">
-        <div className="card bg-base-100 shadow">
+        <div className="card bg-base-100 shadow mb-4">
           <RecordCard record={record} />
+        </div>
+
+        <div className="card bg-base-100 shadow mb-4">
+          <div className="card-body p-4">
+            {currentUser ? (
+              <Form className="flex flex-col gap-3" method="post">
+                <textarea
+                  className="textarea textarea-bordered w-full min-h-24 resize-none"
+                  maxLength={500}
+                  name="body"
+                  placeholder="Reply to this record"
+                  required
+                />
+                {actionData?.error && (
+                  <div role="alert" className="alert alert-error text-sm py-2">
+                    <span>{actionData.error}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-base-content/30">max 500 chars</span>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    disabled={isReplying}
+                  >
+                    {isReplying ? "Replying..." : "Reply"}
+                  </button>
+                </div>
+              </Form>
+            ) : (
+              <p className="text-sm text-base-content/60">
+                <Link className="link" to="/login">Sign in</Link> to reply.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="card bg-base-100 shadow">
+          <div className="px-4 py-3 border-b border-base-200">
+            <h2 className="font-bold text-sm">
+              {replies.length} {replies.length === 1 ? "reply" : "replies"}
+            </h2>
+          </div>
+          {replies.length === 0 ? (
+            <div className="card-body items-center py-12 text-center">
+              <p className="text-base-content/40">No replies yet.</p>
+            </div>
+          ) : (
+            replies.map((reply, index) => (
+              <RecordCard
+                key={reply.id}
+                record={reply}
+                className={
+                  index < replies.length - 1
+                    ? "border-b border-base-200"
+                    : ""
+                }
+              />
+            ))
+          )}
         </div>
       </main>
     </div>
   );
 }
+
+const replyCountSql = sql<number>`(
+  select count(*) from records as replies
+  where replies.parent_record_id = ${records.id}
+    and replies.deleted_at is null
+)`;

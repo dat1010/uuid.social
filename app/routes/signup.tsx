@@ -113,13 +113,17 @@ export default function Signup({ actionData }: Route.ComponentProps) {
                     className="input input-bordered w-full"
                     autoComplete="username"
                     defaultValue={actionData?.username}
+                    maxLength={24}
+                    minLength={3}
                     name="username"
-                    pattern="[a-z0-9_-]{3,24}"
+                    pattern="[A-Za-z0-9_\-]{3,24}"
                     placeholder="choose-a-name"
                     required
                     type="text"
                   />
-                  <p className="fieldset-label">3–24 chars, lowercase, numbers, - and _</p>
+                  <p className="fieldset-label">
+                    3–24 letters, numbers, hyphens, or underscores. Saved lowercase.
+                  </p>
                 </fieldset>
 
                 {actionData?.error && (

@@ -15,6 +15,7 @@ UUID, shown once during signup. Losing it means losing access to that account.
 - Public global timeline
 - D1-backed records associated with authenticated users
 - Public record UUID permalinks
+- UUID-addressed replies and record threads
 - Logout and protected app routes
 - Automatic production deploys from `main`
 

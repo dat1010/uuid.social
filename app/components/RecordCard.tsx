@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
 export type RecordCardData = {
@@ -6,6 +7,7 @@ export type RecordCardData = {
   displayName: string;
   body: string;
   createdAt: string;
+  replyCount: number;
 };
 
 type RecordCardProps = {
@@ -27,13 +29,19 @@ export function RecordCard({ record, className = "" }: RecordCardProps) {
         <div className="min-w-0">
           <p className="font-bold text-sm truncate">{record.displayName}</p>
           <p className="text-xs text-base-content/50">
-            @{record.username} · {formatRecordDate(record.createdAt)}
+            @{record.username} · <RecordDate value={record.createdAt} />
           </p>
         </div>
       </div>
       <p className="text-sm leading-relaxed whitespace-pre-wrap">
         {record.body}
       </p>
+      <Link
+        className="link link-hover mt-4 inline-block text-xs text-base-content/60"
+        to={`/record/${record.id}`}
+      >
+        {record.replyCount} {record.replyCount === 1 ? "reply" : "replies"}
+      </Link>
       <p className="mt-4 text-xs text-base-content/50">
         Record UUID:{" "}
         <Link
@@ -47,9 +55,24 @@ export function RecordCard({ record, className = "" }: RecordCardProps) {
   );
 }
 
-function formatRecordDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+function RecordDate({ value }: { value: string }) {
+  const [localDate, setLocalDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLocalDate(formatRecordDate(value));
+  }, [value]);
+
+  return (
+    <time dateTime={value}>
+      {localDate ?? `${formatRecordDate(value, "UTC", "en-US")} UTC`}
+    </time>
+  );
+}
+
+function formatRecordDate(value: string, timeZone?: string, locale?: string) {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone,
   }).format(new Date(value));
 }

@@ -25,7 +25,7 @@ export function normalizeUsername(value: string) {
 
 export function validateUsername(username: string) {
   if (!/^[a-z0-9_-]{3,24}$/.test(username)) {
-    return "Use 3-24 lowercase letters, numbers, underscores, or hyphens.";
+    return "Use 3-24 letters, numbers, underscores, or hyphens.";
   }
 
   return null;

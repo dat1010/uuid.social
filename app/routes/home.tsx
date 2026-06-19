@@ -1,4 +1,4 @@
-import { desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { data, Form, useNavigation } from "react-router";
 import { RecordCard } from "../components/RecordCard";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -31,10 +31,20 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       displayName: users.displayName,
       body: recordsTable.body,
       createdAt: recordsTable.createdAt,
+      replyCount: sql<number>`(
+        select count(*) from records as replies
+        where replies.parent_record_id = ${recordsTable.id}
+          and replies.deleted_at is null
+      )`,
     })
     .from(recordsTable)
     .innerJoin(users, eq(recordsTable.userId, users.id))
-    .where(isNull(recordsTable.deletedAt))
+    .where(
+      and(
+        isNull(recordsTable.deletedAt),
+        isNull(recordsTable.parentRecordId),
+      ),
+    )
     .orderBy(desc(recordsTable.createdAt))
     .limit(50);
 
@@ -44,6 +54,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       ...record,
       displayName: record.displayName || record.username,
       createdAt: record.createdAt.toISOString(),
+      replyCount: Number(record.replyCount),
     })),
   };
 }
