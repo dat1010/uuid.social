@@ -20,7 +20,7 @@ export default function Landing() {
               uuid.social
             </a>
             <span className="border border-[#141414] px-2 py-1 text-xs font-semibold uppercase">
-              experiment
+              auto deploy check
             </span>
           </header>
 
