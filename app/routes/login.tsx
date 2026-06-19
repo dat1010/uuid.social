@@ -31,7 +31,7 @@ export default function Login() {
               autoComplete="current-password"
               name="password"
               placeholder="00000000-0000-0000-0000-000000000000"
-              type="text"
+              type="password"
             />
           </label>
           <button className="border-2 border-[#141414] bg-[#141414] px-5 py-3 text-sm font-bold uppercase text-white">
