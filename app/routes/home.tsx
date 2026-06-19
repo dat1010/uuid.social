@@ -1,94 +1,79 @@
-import { useEffect, useState } from "react";
+import { desc, eq, isNull } from "drizzle-orm";
+import { data, Form, useNavigation } from "react-router";
 
 import type { Route } from "./+types/home";
-
-type TimelinePost = {
-  id: string;
-  username: string;
-  displayName: string;
-  body: string;
-  createdAt: string;
-};
-
-const timelineStorageKey = "uuid.social.timeline-posts";
+import { createDb } from "../db/client.server";
+import { posts as postsTable, users } from "../db/schema";
+import { requireUser } from "../services/auth.server";
+import { getCloudflareEnv } from "../services/cloudflare.server";
 
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Timeline | uuid.social" },
-    {
-      name: "description",
-      content: "The uuid.social timeline.",
-    },
+    { name: "description", content: "The uuid.social timeline." },
   ];
 }
 
-export function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const username = cleanUsername(url.searchParams.get("username"));
+export function headers() {
+  return { "Cache-Control": "private, no-store" };
+}
+
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const currentUser = await requireUser(request, context);
+  const env = getCloudflareEnv(context);
+  const db = createDb(env.DB);
+  const posts = await db
+    .select({
+      id: postsTable.id,
+      username: users.username,
+      displayName: users.displayName,
+      body: postsTable.body,
+      createdAt: postsTable.createdAt,
+    })
+    .from(postsTable)
+    .innerJoin(users, eq(postsTable.userId, users.id))
+    .where(isNull(postsTable.deletedAt))
+    .orderBy(desc(postsTable.createdAt))
+    .limit(50);
 
   return {
-    currentUser: {
-      username: username || "uuid-user",
-      displayName: username || "uuid user",
-    },
-    posts: [] satisfies TimelinePost[],
+    currentUser,
+    posts: posts.map((post) => ({
+      ...post,
+      displayName: post.displayName || post.username,
+      createdAt: post.createdAt.toISOString(),
+    })),
   };
 }
 
-function cleanUsername(value: string | null) {
-  return (value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+export async function action({ request, context }: Route.ActionArgs) {
+  const currentUser = await requireUser(request, context);
+  const formData = await request.formData();
+  const body = String(formData.get("body") ?? "").trim();
+
+  if (!body || body.length > 500) {
+    return data(
+      { error: "Posts must contain between 1 and 500 characters." },
+      { status: 400 },
+    );
+  }
+
+  const env = getCloudflareEnv(context);
+  const db = createDb(env.DB);
+  await db.insert(postsTable).values({
+    id: crypto.randomUUID(),
+    userId: currentUser.id,
+    body,
+    createdAt: new Date(),
+  });
+
+  return data({ error: null });
 }
 
-export default function Home({ loaderData }: Route.ComponentProps) {
-  const [draft, setDraft] = useState("");
-  const [posts, setPosts] = useState<TimelinePost[]>(loaderData.posts);
-  const [hasLoadedStoredPosts, setHasLoadedStoredPosts] = useState(false);
-  const { currentUser } = loaderData;
-  const remainingCharacters = 500 - draft.length;
-
-  useEffect(() => {
-    const storedPosts = window.localStorage.getItem(timelineStorageKey);
-
-    if (storedPosts) {
-      try {
-        setPosts(JSON.parse(storedPosts) as TimelinePost[]);
-      } catch {
-        window.localStorage.removeItem(timelineStorageKey);
-      }
-    }
-
-    setHasLoadedStoredPosts(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasLoadedStoredPosts) return;
-
-    window.localStorage.setItem(timelineStorageKey, JSON.stringify(posts));
-  }, [hasLoadedStoredPosts, posts]);
-
-  function createPost(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const body = draft.trim();
-    if (!body) return;
-
-    setPosts([
-      {
-        id: crypto.randomUUID(),
-        username: currentUser.username,
-        displayName: currentUser.displayName,
-        body,
-        createdAt: "now",
-      },
-      ...posts,
-    ]);
-    setDraft("");
-  }
+export default function Home({ loaderData, actionData }: Route.ComponentProps) {
+  const navigation = useNavigation();
+  const { currentUser, posts } = loaderData;
+  const isPosting = navigation.formAction === "/home";
 
   return (
     <main className="min-h-screen px-4 py-4 md:px-8">
@@ -98,7 +83,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </a>
         <nav className="flex items-center gap-3 text-xs font-bold uppercase">
           <a href="/home">Timeline</a>
-          <a href="/">Logout</a>
+          <Form action="/logout" method="post">
+            <button type="submit">Logout</button>
+          </Form>
         </nav>
       </header>
 
@@ -111,9 +98,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           <p className="mt-1 text-xs font-bold uppercase">
             @{currentUser.username}
           </p>
-          <p className="mt-4 text-sm leading-6">
-            Logged in with a UUID. The key is hidden; the profile is public.
-          </p>
         </aside>
 
         <section className="border-2 border-[#141414] bg-[#fffdf6]">
@@ -122,37 +106,34 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <p className="mt-1 text-xs font-bold uppercase">global feed</p>
           </div>
 
-          <form
+          <Form
             className="grid gap-3 border-b-2 border-[#141414] bg-white p-4"
-            onSubmit={createPost}
+            method="post"
           >
             <textarea
               className="min-h-28 resize-none border-2 border-[#141414] bg-white p-4 text-sm outline-none"
               maxLength={500}
-              onChange={(event) => setDraft(event.target.value)}
+              name="body"
               placeholder="What is happening in this UUID lifetime?"
-              value={draft}
+              required
             />
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-bold uppercase">
-                {remainingCharacters} chars
-              </span>
-              <button
-                className="border-2 border-[#141414] bg-[#e34b2f] px-5 py-3 text-sm font-bold uppercase text-white disabled:cursor-not-allowed disabled:bg-[#8f8a81]"
-                disabled={!draft.trim()}
-              >
-                Post
-              </button>
-            </div>
-          </form>
+            {actionData?.error && (
+              <p className="text-sm">{actionData.error}</p>
+            )}
+            <button
+              className="justify-self-end border-2 border-[#141414] bg-[#e34b2f] px-5 py-3 text-sm font-bold uppercase text-white disabled:cursor-wait disabled:bg-[#8f8a81]"
+              disabled={isPosting}
+            >
+              {isPosting ? "Posting..." : "Post"}
+            </button>
+          </Form>
 
           <div>
             {posts.length === 0 ? (
               <div className="bg-white p-8 text-center">
                 <h3 className="font-serif text-4xl">No posts yet</h3>
                 <p className="mx-auto mt-3 max-w-md text-sm leading-6">
-                  Write the first post for this browser. The next backend step
-                  is saving these to D1 so everyone sees the same timeline.
+                  Write the first post on uuid.social.
                 </p>
               </div>
             ) : (
@@ -168,11 +149,13 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     <div>
                       <h3 className="text-sm font-bold">{post.displayName}</h3>
                       <p className="text-xs uppercase">
-                        @{post.username} · {post.createdAt}
+                        @{post.username} · {formatPostDate(post.createdAt)}
                       </p>
                     </div>
                   </div>
-                  <p className="text-sm leading-6">{post.body}</p>
+                  <p className="whitespace-pre-wrap text-sm leading-6">
+                    {post.body}
+                  </p>
                 </article>
               ))
             )}
@@ -181,4 +164,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       </section>
     </main>
   );
+}
+
+function formatPostDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }

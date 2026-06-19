@@ -42,6 +42,23 @@ Use local D1 while developing:
 npm run db:migrate:local
 ```
 
+Create `.dev.vars` for local authentication:
+
+```txt
+AUTH_PEPPER=<long random secret>
+```
+
+Set the production pepper once with Wrangler:
+
+```bash
+openssl rand -hex 32 | npx wrangler secret put AUTH_PEPPER
+```
+
+Do not rotate or delete `AUTH_PEPPER` after accounts exist. UUID login hashes are
+keyed with this value, so changing it would make every existing account
+inaccessible. The current production backup is stored in macOS Keychain under
+the service name `uuid.social AUTH_PEPPER`.
+
 ## GitHub Actions Deploys
 
 Pushing to `main` runs `.github/workflows/deploy.yml`.
