@@ -1,4 +1,5 @@
 import { data, Form, redirect, useNavigation } from "react-router";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 import type { Route } from "./+types/login";
 import { createDb } from "../db/client.server";
@@ -51,9 +52,14 @@ export default function Login({ actionData }: Route.ComponentProps) {
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
       <header className="navbar bg-base-100 shadow-sm px-6">
-        <a href="/" className="font-bold tracking-widest uppercase text-sm">
-          uuid.social
-        </a>
+        <div className="navbar-start">
+          <a href="/" className="font-bold tracking-widest uppercase text-sm">
+            uuid.social
+          </a>
+        </div>
+        <div className="navbar-end">
+          <ThemeToggle />
+        </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4 py-12">

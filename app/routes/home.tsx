@@ -1,5 +1,6 @@
 import { desc, eq, isNull } from "drizzle-orm";
 import { data, Form, useNavigation } from "react-router";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 import type { Route } from "./+types/home";
 import { createDb } from "../db/client.server";
@@ -83,7 +84,8 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
             uuid.social
           </a>
         </div>
-        <div className="navbar-end">
+        <div className="navbar-end gap-1">
+          <ThemeToggle />
           <Form action="/logout" method="post">
             <button className="btn btn-ghost btn-sm" type="submit">
               Logout

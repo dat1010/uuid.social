@@ -1,5 +1,7 @@
 @import "tailwindcss" source(".");
 @plugin "daisyui";
+@import "daisyui/theme/nord.css" layer(base);
+@import "daisyui/theme/dim.css" layer(base);
 
 @theme {
   --font-sans: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;

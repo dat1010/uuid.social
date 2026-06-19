@@ -5,6 +5,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useRouteLoaderData,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -23,9 +24,22 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
+const VALID_THEMES = ["nord", "dim"] as const;
+type Theme = (typeof VALID_THEMES)[number];
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const cookie = request.headers.get("Cookie") ?? "";
+  const raw = cookie.match(/\btheme=([^;]+)/)?.[1];
+  const theme: Theme = VALID_THEMES.includes(raw as Theme) ? (raw as Theme) : "nord";
+  return { theme };
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
+  const data = useRouteLoaderData<typeof loader>("root");
+  const theme = data?.theme ?? "nord";
+
   return (
-    <html lang="en" data-theme="nord">
+    <html lang="en" data-theme={theme}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
