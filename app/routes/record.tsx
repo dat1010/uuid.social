@@ -45,6 +45,8 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
         displayName: users.displayName,
         body: records.body,
         createdAt: records.createdAt,
+        userId: records.userId,
+        parentRecordId: records.parentRecordId,
         replyCount: replyCountSql,
       })
       .from(records)
@@ -76,10 +78,14 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     throw new Response("Not Found", { status: 404, statusText: "Not Found" });
   }
 
+  const { userId, parentRecordId, ...publicRecord } = record;
+
   return {
     currentUser,
+    isOwner: currentUser?.id === userId,
+    isReply: parentRecordId !== null,
     record: {
-      ...record,
+      ...publicRecord,
       displayName: record.displayName || record.username,
       createdAt: record.createdAt.toISOString(),
       replyCount: Number(record.replyCount),
@@ -100,7 +106,49 @@ export async function action({ request, context, params }: Route.ActionArgs) {
     throw new Response("Not Found", { status: 404, statusText: "Not Found" });
   }
 
+  const env = getCloudflareEnv(context);
+  const db = createDb(env.DB);
+  const [targetRecord] = await db
+    .select({
+      id: records.id,
+      userId: records.userId,
+      parentRecordId: records.parentRecordId,
+    })
+    .from(records)
+    .where(and(eq(records.id, uuid), isNull(records.deletedAt)))
+    .limit(1);
+
+  if (!targetRecord) {
+    throw new Response("Not Found", { status: 404, statusText: "Not Found" });
+  }
+
   const formData = await request.formData();
+  const intent = String(formData.get("intent") ?? "");
+
+  if (intent === "delete") {
+    if (targetRecord.userId !== currentUser.id) {
+      throw new Response("Forbidden", {
+        status: 403,
+        statusText: "Forbidden",
+      });
+    }
+
+    await db
+      .update(records)
+      .set({ deletedAt: new Date() })
+      .where(eq(records.id, targetRecord.id));
+
+    return redirect(
+      targetRecord.parentRecordId
+        ? `/record/${targetRecord.parentRecordId}`
+        : "/home",
+    );
+  }
+
+  if (intent !== "reply") {
+    return data({ error: "Unsupported record action." }, { status: 400 });
+  }
+
   const body = String(formData.get("body") ?? "").trim();
   if (!body || body.length > 500) {
     return data(
@@ -109,22 +157,10 @@ export async function action({ request, context, params }: Route.ActionArgs) {
     );
   }
 
-  const env = getCloudflareEnv(context);
-  const db = createDb(env.DB);
-  const [parentRecord] = await db
-    .select({ id: records.id })
-    .from(records)
-    .where(and(eq(records.id, uuid), isNull(records.deletedAt)))
-    .limit(1);
-
-  if (!parentRecord) {
-    throw new Response("Not Found", { status: 404, statusText: "Not Found" });
-  }
-
   await db.insert(records).values({
     id: crypto.randomUUID(),
     userId: currentUser.id,
-    parentRecordId: parentRecord.id,
+    parentRecordId: targetRecord.id,
     body,
     createdAt: new Date(),
   });
@@ -134,11 +170,14 @@ export async function action({ request, context, params }: Route.ActionArgs) {
 
 export default function Record({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
-  const { currentUser, record, replies } = loaderData;
+  const { currentUser, isOwner, isReply, record, replies } = loaderData;
   const homeUrl = currentUser ? "/home" : "/";
   const isReplying =
     navigation.state === "submitting" &&
-    navigation.formAction === `/record/${record.id}`;
+    navigation.formData?.get("intent") === "reply";
+  const isDeleting =
+    navigation.state === "submitting" &&
+    navigation.formData?.get("intent") === "delete";
 
   return (
     <div className="min-h-screen bg-base-200">
@@ -180,12 +219,30 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
       <main className="max-w-2xl mx-auto px-4 py-6 lg:px-8">
         <div className="card bg-base-100 shadow mb-4">
           <RecordCard record={record} />
+          {isOwner && (
+            <div className="px-4 pb-4 flex justify-end">
+              <Form method="post">
+                <input name="intent" type="hidden" value="delete" />
+                <button
+                  className="btn btn-error btn-outline btn-xs"
+                  disabled={isDeleting}
+                >
+                  {isDeleting
+                    ? "Deleting..."
+                    : isReply
+                      ? "Delete reply"
+                      : "Delete record"}
+                </button>
+              </Form>
+            </div>
+          )}
         </div>
 
         <div className="card bg-base-100 shadow mb-4">
           <div className="card-body p-4">
             {currentUser ? (
               <Form className="flex flex-col gap-3" method="post">
+                <input name="intent" type="hidden" value="reply" />
                 <textarea
                   className="textarea textarea-bordered w-full min-h-24 resize-none"
                   maxLength={500}

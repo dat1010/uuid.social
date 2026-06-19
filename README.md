@@ -16,6 +16,7 @@ UUID, shown once during signup. Losing it means losing access to that account.
 - D1-backed records associated with authenticated users
 - Public record UUID permalinks
 - UUID-addressed replies and record threads
+- Immutable records that authors can soft-delete
 - Logout and protected app routes
 - Automatic production deploys from `main`
 
