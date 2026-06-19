@@ -1,5 +1,6 @@
 import { desc, eq, isNull } from "drizzle-orm";
 import { data, Form, useNavigation } from "react-router";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 import type { Route } from "./+types/home";
 import { createDb } from "../db/client.server";
@@ -76,93 +77,115 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
   const isPosting = navigation.formAction === "/home";
 
   return (
-    <main className="min-h-screen px-4 py-4 md:px-8">
-      <header className="mx-auto mb-5 flex max-w-5xl items-center justify-between border-2 border-[#141414] bg-[#fffdf6] px-4 py-3 shadow-[5px_5px_0_#141414]">
-        <a className="text-sm font-bold uppercase tracking-[0.18em]" href="/home">
-          uuid.social
-        </a>
-        <nav className="flex items-center gap-3 text-xs font-bold uppercase">
-          <a href="/home">Timeline</a>
+    <div className="min-h-screen bg-base-200">
+      <header className="navbar bg-base-100 shadow-sm px-4 lg:px-8 sticky top-0 z-10">
+        <div className="navbar-start">
+          <a href="/home" className="font-bold tracking-widest uppercase text-sm">
+            uuid.social
+          </a>
+        </div>
+        <div className="navbar-end gap-1">
+          <ThemeToggle />
           <Form action="/logout" method="post">
-            <button type="submit">Logout</button>
-          </Form>
-        </nav>
-      </header>
-
-      <section className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[220px_1fr]">
-        <aside className="h-max border-2 border-[#141414] bg-[#e9f7f1] p-4">
-          <div className="mb-4 grid size-16 place-items-center border-2 border-[#141414] bg-[#ffd447] text-2xl font-bold">
-            {currentUser.displayName.slice(0, 1).toUpperCase()}
-          </div>
-          <h1 className="font-serif text-4xl">{currentUser.displayName}</h1>
-          <p className="mt-1 text-xs font-bold uppercase">
-            @{currentUser.username}
-          </p>
-        </aside>
-
-        <section className="border-2 border-[#141414] bg-[#fffdf6]">
-          <div className="border-b-2 border-[#141414] p-4">
-            <h2 className="font-serif text-5xl">Timeline</h2>
-            <p className="mt-1 text-xs font-bold uppercase">global feed</p>
-          </div>
-
-          <Form
-            className="grid gap-3 border-b-2 border-[#141414] bg-white p-4"
-            method="post"
-          >
-            <textarea
-              className="min-h-28 resize-none border-2 border-[#141414] bg-white p-4 text-sm outline-none"
-              maxLength={500}
-              name="body"
-              placeholder="What is happening in this UUID lifetime?"
-              required
-            />
-            {actionData?.error && (
-              <p className="text-sm">{actionData.error}</p>
-            )}
-            <button
-              className="justify-self-end border-2 border-[#141414] bg-[#e34b2f] px-5 py-3 text-sm font-bold uppercase text-white disabled:cursor-wait disabled:bg-[#8f8a81]"
-              disabled={isPosting}
-            >
-              {isPosting ? "Posting..." : "Post"}
+            <button className="btn btn-ghost btn-sm" type="submit">
+              Logout
             </button>
           </Form>
+        </div>
+      </header>
 
-          <div>
-            {posts.length === 0 ? (
-              <div className="bg-white p-8 text-center">
-                <h3 className="font-serif text-4xl">No posts yet</h3>
-                <p className="mx-auto mt-3 max-w-md text-sm leading-6">
-                  Write the first post on uuid.social.
-                </p>
+      <main className="max-w-4xl mx-auto px-4 py-6 lg:px-8">
+        <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+          {/* Sidebar */}
+          <aside className="card bg-base-100 shadow h-fit">
+            <div className="card-body p-4 gap-3">
+              <div className="avatar avatar-placeholder">
+                <div className="bg-primary text-primary-content rounded-full w-12">
+                  <span className="text-lg font-bold">
+                    {currentUser.displayName.slice(0, 1).toUpperCase()}
+                  </span>
+                </div>
               </div>
-            ) : (
-              posts.map((post) => (
-                <article
-                  className="border-b-2 border-[#141414] bg-white p-4"
-                  key={post.id}
+              <div>
+                <p className="font-bold">{currentUser.displayName}</p>
+                <p className="text-sm text-base-content/50">@{currentUser.username}</p>
+              </div>
+            </div>
+          </aside>
+
+          {/* Timeline */}
+          <div className="flex flex-col gap-4">
+            {/* Composer */}
+            <div className="card bg-base-100 shadow">
+              <div className="card-body p-4">
+                <Form
+                  className="flex flex-col gap-3"
+                  method="post"
+                  key={isPosting ? "posting" : "idle"}
                 >
-                  <div className="mb-3 flex items-center gap-3">
-                    <div className="grid size-11 place-items-center border-2 border-[#141414] bg-[#ffd447] font-bold">
-                      {post.displayName.slice(0, 1).toUpperCase()}
+                  <textarea
+                    className="textarea textarea-bordered w-full min-h-24 resize-none"
+                    maxLength={500}
+                    name="body"
+                    placeholder="What is happening in this UUID lifetime?"
+                    required
+                  />
+                  {actionData?.error && (
+                    <div role="alert" className="alert alert-error text-sm py-2">
+                      <span>{actionData.error}</span>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold">{post.displayName}</h3>
-                      <p className="text-xs uppercase">
-                        @{post.username} · {formatPostDate(post.createdAt)}
-                      </p>
-                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-base-content/30">max 500 chars</span>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      disabled={isPosting}
+                    >
+                      {isPosting ? "Posting..." : "Post"}
+                    </button>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm leading-6">
-                    {post.body}
-                  </p>
-                </article>
-              ))
-            )}
+                </Form>
+              </div>
+            </div>
+
+            {/* Feed */}
+            <div className="card bg-base-100 shadow">
+              {posts.length === 0 ? (
+                <div className="card-body items-center py-16 text-center">
+                  <p className="text-base-content/40">No posts yet. Write the first one.</p>
+                </div>
+              ) : (
+                posts.map((post, i) => (
+                  <article
+                    key={post.id}
+                    className={`p-4 ${i < posts.length - 1 ? "border-b border-base-200" : ""}`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="avatar avatar-placeholder">
+                        <div className="bg-primary text-primary-content rounded-full w-9">
+                          <span className="text-sm font-bold">
+                            {post.displayName.slice(0, 1).toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm truncate">{post.displayName}</p>
+                        <p className="text-xs text-base-content/50">
+                          @{post.username} · {formatPostDate(post.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {post.body}
+                    </p>
+                  </article>
+                ))
+              )}
+            </div>
           </div>
-        </section>
-      </section>
-    </main>
+        </div>
+      </main>
+    </div>
   );
 }
 

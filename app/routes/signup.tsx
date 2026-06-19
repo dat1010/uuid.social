@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { data, Form, useNavigation } from "react-router";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 import type { Route } from "./+types/signup";
 import { createDb } from "../db/client.server";
@@ -66,126 +67,141 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Signup({ actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const generatedUuid = actionData?.uuid ?? "";
-  const [copyLabel, setCopyLabel] = useState("Copy UUID");
+  const [copyLabel, setCopyLabel] = useState("Copy");
   const [savedUuid, setSavedUuid] = useState(false);
 
   useEffect(() => {
     setSavedUuid(false);
-    setCopyLabel("Copy UUID");
+    setCopyLabel("Copy");
   }, [generatedUuid]);
 
   async function copyUuid() {
     if (!generatedUuid) return;
-
     await navigator.clipboard.writeText(generatedUuid);
-    setCopyLabel("Copied");
-    window.setTimeout(() => setCopyLabel("Copy UUID"), 1500);
+    setCopyLabel("Copied!");
+    window.setTimeout(() => setCopyLabel("Copy"), 1500);
   }
 
   return (
-    <main className="grid min-h-screen place-items-center px-5 py-5">
-      <section className="w-full max-w-2xl border-2 border-[#141414] bg-[#e9f7f1] p-5 shadow-[8px_8px_0_#e34b2f] md:p-8">
-        <a className="text-sm font-bold uppercase tracking-[0.18em]" href="/">
-          uuid.social
-        </a>
-        <div className="my-8">
-          <h1 className="font-serif text-6xl">Create account</h1>
-          <p className="mt-3 text-sm leading-6">
-            Pick a unique public username. We will create your private UUID and
-            show it exactly once.
-          </p>
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      <header className="navbar bg-base-100 shadow-sm px-6">
+        <div className="navbar-start">
+          <a href="/" className="font-bold tracking-widest uppercase text-sm">
+            uuid.social
+          </a>
         </div>
+        <div className="navbar-end">
+          <ThemeToggle />
+        </div>
+      </header>
 
-        {!generatedUuid ? (
-          <Form className="grid gap-3" method="post">
-            <label className="grid gap-2 text-xs font-bold uppercase">
-              Public username
-              <input
-                className="border-2 border-[#141414] bg-white px-4 py-3 text-sm font-normal normal-case outline-none"
-                autoComplete="username"
-                defaultValue={actionData?.username}
-                name="username"
-                pattern="[a-z0-9_-]{3,24}"
-                placeholder="choose-a-name"
-                required
-                type="text"
-              />
-            </label>
-            {actionData?.error && (
-              <p className="border-2 border-[#141414] bg-white p-3 text-sm">
-                {actionData.error}
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="card bg-base-100 shadow-lg w-full max-w-md">
+          <div className="card-body gap-6">
+            <div>
+              <h1 className="card-title text-2xl">Create account</h1>
+              <p className="text-base-content/60 text-sm mt-1">
+                Pick a username. We&apos;ll generate a private UUID — shown exactly once.
               </p>
-            )}
-            <button
-              className="border-2 border-[#141414] bg-[#ffd447] px-5 py-3 text-sm font-bold uppercase disabled:cursor-wait disabled:bg-[#8f8a81]"
-              disabled={navigation.state !== "idle"}
-            >
-              {navigation.state === "submitting"
-                ? "Creating account..."
-                : "Create account and UUID"}
-            </button>
-          </Form>
-        ) : (
-          <div className="grid gap-3">
-            <input
-              autoComplete="username"
-              className="sr-only"
-              name="username"
-              readOnly
-              type="text"
-              value={actionData?.username ?? ""}
-            />
-            <div className="grid gap-3 border-2 border-[#141414] bg-white p-4">
-              <label className="grid gap-2 text-xs font-bold uppercase">
-                Save this UUID
-                <input
-                  className="border-2 border-[#141414] bg-[#fffdf6] px-4 py-3 text-sm font-normal normal-case outline-none"
-                  autoComplete="new-password"
-                  name="password"
-                  readOnly
-                  type="text"
-                  value={generatedUuid}
-                />
-              </label>
-              <button
-                className="border-2 border-[#141414] bg-[#141414] px-4 py-2 text-sm font-bold uppercase text-white"
-                onClick={copyUuid}
-                type="button"
-              >
-                {copyLabel}
-              </button>
             </div>
 
-            <label className="flex items-center gap-3 text-xs font-bold uppercase leading-5">
-              <input
-                checked={savedUuid}
-                className="size-5 accent-[#141414]"
-                onChange={(event) => setSavedUuid(event.target.checked)}
-                type="checkbox"
-              />
-              I saved this UUID
-            </label>
-            <button
-              className={`border-2 border-[#141414] px-5 py-3 text-center text-sm font-bold uppercase text-white ${
-                savedUuid
-                  ? "bg-[#141414]"
-                  : "cursor-not-allowed bg-[#8f8a81]"
-              }`}
-              disabled={!savedUuid}
-              onClick={() => window.location.replace("/home")}
-              type="button"
-            >
-              Continue to timeline
-            </button>
-          </div>
-        )}
+            {!generatedUuid ? (
+              <Form className="flex flex-col gap-4" method="post">
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend">Username</legend>
+                  <input
+                    className="input input-bordered w-full"
+                    autoComplete="username"
+                    defaultValue={actionData?.username}
+                    name="username"
+                    pattern="[a-z0-9_-]{3,24}"
+                    placeholder="choose-a-name"
+                    required
+                    type="text"
+                  />
+                  <p className="fieldset-label">3–24 chars, lowercase, numbers, - and _</p>
+                </fieldset>
 
-        <p className="mt-4 text-sm leading-6">
-          The UUID is stored only as a keyed hash. We cannot recover or show it
-          again after you leave this page.
-        </p>
-      </section>
-    </main>
+                {actionData?.error && (
+                  <div role="alert" className="alert alert-error text-sm py-3">
+                    <span>{actionData.error}</span>
+                  </div>
+                )}
+
+                <button
+                  className="btn btn-primary w-full"
+                  disabled={navigation.state !== "idle"}
+                >
+                  {navigation.state === "submitting"
+                    ? "Creating..."
+                    : "Create account"}
+                </button>
+              </Form>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <input
+                  autoComplete="username"
+                  className="sr-only"
+                  name="username"
+                  readOnly
+                  type="text"
+                  value={actionData?.username ?? ""}
+                />
+
+                <div role="alert" className="alert alert-warning text-sm py-3">
+                  <span>Save this UUID now — you will not see it again.</span>
+                </div>
+
+                <fieldset className="fieldset">
+                  <legend className="fieldset-legend">Your UUID</legend>
+                  <div className="join w-full">
+                    <input
+                      className="input input-bordered join-item w-full font-mono text-sm"
+                      autoComplete="new-password"
+                      name="password"
+                      readOnly
+                      type="text"
+                      value={generatedUuid}
+                    />
+                    <button
+                      className="btn btn-neutral join-item"
+                      onClick={copyUuid}
+                      type="button"
+                    >
+                      {copyLabel}
+                    </button>
+                  </div>
+                </fieldset>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    checked={savedUuid}
+                    className="checkbox checkbox-primary"
+                    onChange={(e) => setSavedUuid(e.target.checked)}
+                    type="checkbox"
+                  />
+                  <span className="text-sm">I have saved my UUID somewhere safe</span>
+                </label>
+
+                <button
+                  className="btn btn-primary w-full"
+                  disabled={!savedUuid}
+                  onClick={() => window.location.replace("/home")}
+                  type="button"
+                >
+                  Continue to timeline
+                </button>
+              </div>
+            )}
+
+            <p className="text-xs text-base-content/40 leading-relaxed">
+              The UUID is stored only as a keyed hash. We cannot recover or show
+              it again after you leave this page.
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
 
