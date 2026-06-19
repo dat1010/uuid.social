@@ -14,6 +14,7 @@ UUID, shown once during signup. Losing it means losing access to that account.
 - Server-side sessions stored in Cloudflare D1
 - Public global timeline
 - D1-backed posts associated with authenticated users
+- Public post UUID permalinks
 - Logout and protected app routes
 - Automatic production deploys from `main`
 
@@ -27,8 +28,10 @@ Successful login exchanges the UUID for an independent 256-bit random session
 token. The browser receives that token in an `HttpOnly`, `SameSite=Lax` cookie;
 only its SHA-256 hash is stored in D1.
 
-The UUID must never appear in URLs, logs, profile data, or timeline content.
-Signup, login, and authenticated pages use `Cache-Control: no-store`.
+An account credential UUID must never appear in URLs, logs, profile data, or
+timeline content. Post UUIDs are separate public identifiers and are
+intentionally visible and shareable. Signup, login, and authenticated pages use
+`Cache-Control: no-store`.
 
 There is intentionally no account-recovery mechanism.
 

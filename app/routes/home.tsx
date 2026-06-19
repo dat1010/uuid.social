@@ -1,5 +1,6 @@
 import { desc, eq, isNull } from "drizzle-orm";
 import { data, Form, useNavigation } from "react-router";
+import { PostCard } from "../components/PostCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 
 import type { Route } from "./+types/home";
@@ -156,29 +157,11 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
                 </div>
               ) : (
                 posts.map((post, i) => (
-                  <article
+                  <PostCard
                     key={post.id}
-                    className={`p-4 ${i < posts.length - 1 ? "border-b border-base-200" : ""}`}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="avatar avatar-placeholder">
-                        <div className="bg-primary text-primary-content rounded-full w-9">
-                          <span className="text-sm font-bold">
-                            {post.displayName.slice(0, 1).toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-sm truncate">{post.displayName}</p>
-                        <p className="text-xs text-base-content/50">
-                          @{post.username} · {formatPostDate(post.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {post.body}
-                    </p>
-                  </article>
+                    post={post}
+                    className={i < posts.length - 1 ? "border-b border-base-200" : ""}
+                  />
                 ))
               )}
             </div>
@@ -187,11 +170,4 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
       </main>
     </div>
   );
-}
-
-function formatPostDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
 }
