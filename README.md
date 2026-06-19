@@ -13,8 +13,8 @@ UUID, shown once during signup. Losing it means losing access to that account.
 - One-time UUID reveal with copy support
 - Server-side sessions stored in Cloudflare D1
 - Public global timeline
-- D1-backed posts associated with authenticated users
-- Public post UUID permalinks
+- D1-backed records associated with authenticated users
+- Public record UUID permalinks
 - Logout and protected app routes
 - Automatic production deploys from `main`
 
@@ -29,7 +29,7 @@ token. The browser receives that token in an `HttpOnly`, `SameSite=Lax` cookie;
 only its SHA-256 hash is stored in D1.
 
 An account credential UUID must never appear in URLs, logs, profile data, or
-timeline content. Post UUIDs are separate public identifiers and are
+timeline content. Record UUIDs are separate public identifiers and are
 intentionally visible and shareable. Signup, login, and authenticated pages use
 `Cache-Control: no-store`.
 

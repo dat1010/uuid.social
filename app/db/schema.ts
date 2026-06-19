@@ -18,8 +18,8 @@ export const users = sqliteTable(
   (table) => [index("users_username_idx").on(table.username)],
 );
 
-export const posts = sqliteTable(
-  "posts",
+export const records = sqliteTable(
+  "records",
   {
     id: text("id").primaryKey(),
     userId: text("user_id")
@@ -30,8 +30,8 @@ export const posts = sqliteTable(
     deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
   },
   (table) => [
-    index("posts_created_at_idx").on(table.createdAt),
-    index("posts_user_id_idx").on(table.userId),
+    index("records_created_at_idx").on(table.createdAt),
+    index("records_user_id_idx").on(table.userId),
   ],
 );
 
@@ -67,12 +67,12 @@ export const follows = sqliteTable(
 );
 
 export const userRelations = relations(users, ({ many }) => ({
-  posts: many(posts),
+  records: many(records),
 }));
 
-export const postRelations = relations(posts, ({ one }) => ({
+export const recordRelations = relations(records, ({ one }) => ({
   author: one(users, {
-    fields: [posts.userId],
+    fields: [records.userId],
     references: [users.id],
   }),
 }));

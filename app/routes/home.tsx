@@ -1,11 +1,11 @@
 import { desc, eq, isNull } from "drizzle-orm";
 import { data, Form, useNavigation } from "react-router";
-import { PostCard } from "../components/PostCard";
+import { RecordCard } from "../components/RecordCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 
 import type { Route } from "./+types/home";
 import { createDb } from "../db/client.server";
-import { posts as postsTable, users } from "../db/schema";
+import { records as recordsTable, users } from "../db/schema";
 import { requireUser } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 
@@ -24,26 +24,26 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const currentUser = await requireUser(request, context);
   const env = getCloudflareEnv(context);
   const db = createDb(env.DB);
-  const posts = await db
+  const records = await db
     .select({
-      id: postsTable.id,
+      id: recordsTable.id,
       username: users.username,
       displayName: users.displayName,
-      body: postsTable.body,
-      createdAt: postsTable.createdAt,
+      body: recordsTable.body,
+      createdAt: recordsTable.createdAt,
     })
-    .from(postsTable)
-    .innerJoin(users, eq(postsTable.userId, users.id))
-    .where(isNull(postsTable.deletedAt))
-    .orderBy(desc(postsTable.createdAt))
+    .from(recordsTable)
+    .innerJoin(users, eq(recordsTable.userId, users.id))
+    .where(isNull(recordsTable.deletedAt))
+    .orderBy(desc(recordsTable.createdAt))
     .limit(50);
 
   return {
     currentUser,
-    posts: posts.map((post) => ({
-      ...post,
-      displayName: post.displayName || post.username,
-      createdAt: post.createdAt.toISOString(),
+    records: records.map((record) => ({
+      ...record,
+      displayName: record.displayName || record.username,
+      createdAt: record.createdAt.toISOString(),
     })),
   };
 }
@@ -55,14 +55,14 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (!body || body.length > 500) {
     return data(
-      { error: "Posts must contain between 1 and 500 characters." },
+      { error: "Records must contain between 1 and 500 characters." },
       { status: 400 },
     );
   }
 
   const env = getCloudflareEnv(context);
   const db = createDb(env.DB);
-  await db.insert(postsTable).values({
+  await db.insert(recordsTable).values({
     id: crypto.randomUUID(),
     userId: currentUser.id,
     body,
@@ -74,8 +74,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function Home({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
-  const { currentUser, posts } = loaderData;
-  const isPosting = navigation.formAction === "/home";
+  const { currentUser, records } = loaderData;
+  const isPublishing = navigation.formAction === "/home";
 
   return (
     <div className="min-h-screen bg-base-200">
@@ -122,7 +122,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
                 <Form
                   className="flex flex-col gap-3"
                   method="post"
-                  key={isPosting ? "posting" : "idle"}
+                  key={isPublishing ? "publishing" : "idle"}
                 >
                   <textarea
                     className="textarea textarea-bordered w-full min-h-24 resize-none"
@@ -140,9 +140,9 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
                     <span className="text-xs text-base-content/30">max 500 chars</span>
                     <button
                       className="btn btn-primary btn-sm"
-                      disabled={isPosting}
+                      disabled={isPublishing}
                     >
-                      {isPosting ? "Posting..." : "Post"}
+                      {isPublishing ? "Publishing..." : "Publish"}
                     </button>
                   </div>
                 </Form>
@@ -151,16 +151,18 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
 
             {/* Feed */}
             <div className="card bg-base-100 shadow">
-              {posts.length === 0 ? (
+              {records.length === 0 ? (
                 <div className="card-body items-center py-16 text-center">
-                  <p className="text-base-content/40">No posts yet. Write the first one.</p>
+                  <p className="text-base-content/40">
+                    No records yet. Publish the first one.
+                  </p>
                 </div>
               ) : (
-                posts.map((post, i) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    className={i < posts.length - 1 ? "border-b border-base-200" : ""}
+                records.map((record, i) => (
+                  <RecordCard
+                    key={record.id}
+                    record={record}
+                    className={i < records.length - 1 ? "border-b border-base-200" : ""}
                   />
                 ))
               )}

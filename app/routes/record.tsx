@@ -1,22 +1,22 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { Form, Link } from "react-router";
 
-import type { Route } from "./+types/post";
-import { PostCard } from "../components/PostCard";
+import type { Route } from "./+types/record";
+import { RecordCard } from "../components/RecordCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { createDb } from "../db/client.server";
-import { posts, users } from "../db/schema";
+import { records, users } from "../db/schema";
 import { getCurrentUser, validateUuid } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 
 export function meta({ data }: Route.MetaArgs) {
-  const title = data?.post.id
-    ? `Post ${data.post.id} | uuid.social`
-    : "Post | uuid.social";
+  const title = data?.record.id
+    ? `Record ${data.record.id} | uuid.social`
+    : "Record | uuid.social";
 
   return [
     { title },
-    { name: "description", content: "A post on uuid.social." },
+    { name: "description", content: "A record on uuid.social." },
   ];
 }
 
@@ -32,39 +32,39 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
 
   const env = getCloudflareEnv(context);
   const db = createDb(env.DB);
-  const [currentUser, postRows] = await Promise.all([
+  const [currentUser, recordRows] = await Promise.all([
     getCurrentUser(request, context),
     db
       .select({
-        id: posts.id,
+        id: records.id,
         username: users.username,
         displayName: users.displayName,
-        body: posts.body,
-        createdAt: posts.createdAt,
+        body: records.body,
+        createdAt: records.createdAt,
       })
-      .from(posts)
-      .innerJoin(users, eq(posts.userId, users.id))
-      .where(and(eq(posts.id, uuid), isNull(posts.deletedAt)))
+      .from(records)
+      .innerJoin(users, eq(records.userId, users.id))
+      .where(and(eq(records.id, uuid), isNull(records.deletedAt)))
       .limit(1),
   ]);
-  const [post] = postRows;
+  const [record] = recordRows;
 
-  if (!post) {
+  if (!record) {
     throw new Response("Not Found", { status: 404, statusText: "Not Found" });
   }
 
   return {
     currentUser,
-    post: {
-      ...post,
-      displayName: post.displayName || post.username,
-      createdAt: post.createdAt.toISOString(),
+    record: {
+      ...record,
+      displayName: record.displayName || record.username,
+      createdAt: record.createdAt.toISOString(),
     },
   };
 }
 
-export default function Post({ loaderData }: Route.ComponentProps) {
-  const { currentUser, post } = loaderData;
+export default function Record({ loaderData }: Route.ComponentProps) {
+  const { currentUser, record } = loaderData;
   const homeUrl = currentUser ? "/home" : "/";
 
   return (
@@ -106,7 +106,7 @@ export default function Post({ loaderData }: Route.ComponentProps) {
 
       <main className="max-w-2xl mx-auto px-4 py-6 lg:px-8">
         <div className="card bg-base-100 shadow">
-          <PostCard post={post} />
+          <RecordCard record={record} />
         </div>
       </main>
     </div>
