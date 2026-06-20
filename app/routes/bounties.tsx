@@ -3,14 +3,12 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/bounties";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { BountyCountdown } from "../components/BountyCountdown";
-import { getCurrentUser, requireUser, validateUuid } from "../services/auth.server";
+import { getCurrentUser, requireUser, toPublicCurrentUser, validateUuid, type PublicCurrentUser } from "../services/auth.server";
 import {
   formatBountyPrompt,
-  matchesCharacterCount,
-  matchesEventGap,
   type BountyRuleType,
 } from "../services/bounty";
-import { ensureCurrentBounties } from "../services/bounties.server";
+import { claimBounty, ensureCurrentBounties } from "../services/bounties.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 
 type BountyRow = {
@@ -29,8 +27,6 @@ type BountyRow = {
   claimed_at: number | null;
   winner_username: string | null;
 };
-
-type RecordRow = { id: string; event_number: number };
 
 export function meta() {
   return [
@@ -60,8 +56,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   ]);
 
   return {
-    currentUser,
-    active: activeResult.results.map(toBountyView),
+    currentUser: toPublicCurrentUser(currentUser),
+    active: activeResult.results.map(toActiveBountyView),
     archive: archiveResult.results.slice(0, pageSize).map(toBountyView),
     page,
     hasNextPage: archiveResult.results.length > pageSize,
@@ -81,46 +77,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     return claimError(bountyId, "Enter complete record UUIDs in canonical format.");
   }
 
-  const bounty = await env.DB.prepare(
-    `SELECT b.*, c.id AS claim_id FROM bounties b
-     LEFT JOIN bounty_claims c ON c.bounty_id = b.id WHERE b.id = ?`,
-  )
-    .bind(bountyId)
-    .first<BountyRow>();
-
-  if (!bounty || bounty.starts_at > now || bounty.ends_at <= now) {
-    return claimError(bountyId, "That bounty is not active.");
-  }
-  if (bounty.claim_id) return claimError(bountyId, "Someone already claimed this bounty.");
-
-  const recordA = await findRecord(env.DB, recordIdA);
-  if (!recordA) return claimError(bountyId, "The first UUID is not a public record.");
-
-  let isMatch = false;
-  if (bounty.rule_type === "character_count" && bounty.character) {
-    isMatch = matchesCharacterCount(recordA.id, bounty.character, bounty.target_value);
-  } else if (bounty.rule_type === "event_gap") {
-    if (!recordIdB || recordIdA === recordIdB) {
-      return claimError(bountyId, "This bounty requires two different record UUIDs.");
-    }
-    const recordB = await findRecord(env.DB, recordIdB);
-    if (!recordB) return claimError(bountyId, "The second UUID is not a public record.");
-    isMatch = matchesEventGap(recordA.event_number, recordB.event_number, bounty.target_value);
-  }
-
-  if (!isMatch) return claimError(bountyId, "A valiant attempt, but those UUIDs do not match the bounty.");
-
-  const result = await env.DB.prepare(
-    `INSERT OR IGNORE INTO bounty_claims
-      (id, bounty_id, user_id, record_id_a, record_id_b, claimed_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-  )
-    .bind(crypto.randomUUID(), bountyId, currentUser.id, recordIdA, recordIdB || null, now)
-    .run();
-
-  if (result.meta.changes !== 1) {
-    return claimError(bountyId, "Someone else claimed this bounty first.");
-  }
+  const error = await claimBounty(env.DB, {
+    bountyId, userId: currentUser.id, recordIdA, recordIdB: recordIdB || null, now,
+  });
+  if (error) return claimError(bountyId, error);
 
   return redirect("/bounties?claimed=1");
 }
@@ -171,7 +131,7 @@ export default function Bounties({ loaderData, actionData }: Route.ComponentProp
   );
 }
 
-function BountyCard({ bounty, currentUser, actionData, isSubmitting }: { bounty: ReturnType<typeof toBountyView>; currentUser: Awaited<ReturnType<typeof getCurrentUser>>; actionData: { bountyId: string; error: string } | undefined; isSubmitting: boolean }) {
+function BountyCard({ bounty, currentUser, actionData, isSubmitting }: { bounty: ReturnType<typeof toActiveBountyView>; currentUser: PublicCurrentUser | null; actionData: { bountyId: string; error: string } | undefined; isSubmitting: boolean }) {
   return (
     <article className="card bg-base-100 shadow border-t-4 border-primary">
       <div className="card-body p-5">
@@ -204,7 +164,7 @@ function ArchiveRow({ bounty }: { bounty: ReturnType<typeof toBountyView> }) {
   </article>;
 }
 
-function Winner({ bounty }: { bounty: ReturnType<typeof toBountyView> }) {
+function Winner({ bounty }: { bounty: Pick<ReturnType<typeof toBountyView>, "winnerUsername" | "recordIdA" | "recordIdB"> }) {
   return <p className="text-sm mt-2">Trophy claimed by <Link className="link font-bold" to={`/user/${bounty.winnerUsername}`}>@{bounty.winnerUsername}</Link> with <RecordLink id={bounty.recordIdA!} />{bounty.recordIdB && <> and <RecordLink id={bounty.recordIdB} /></>}.</p>;
 }
 
@@ -213,7 +173,7 @@ function RecordLink({ id }: { id: string }) {
 }
 
 function BountyUuid({ id }: { id: string }) {
-  return <p className="text-[0.65rem] text-base-content/40 break-all">Bounty UUID: <span className="font-mono select-all">{id}</span></p>;
+  return <p className="text-[0.65rem] text-base-content/40 break-all">Bounty UUID: <Link className="font-mono select-all link" to={`/bounty/${id}`}>{id}</Link></p>;
 }
 
 function toBountyView(row: BountyRow) {
@@ -232,8 +192,9 @@ function toBountyView(row: BountyRow) {
   };
 }
 
-async function findRecord(db: D1Database, id: string) {
-  return db.prepare("SELECT id, event_number FROM records WHERE id = ? AND deleted_at IS NULL").bind(id).first<RecordRow>();
+function toActiveBountyView(row: BountyRow) {
+  const { sampleRecordIdA: _sampleA, sampleRecordIdB: _sampleB, ...active } = toBountyView(row);
+  return active;
 }
 
 function claimError(bountyId: string, error: string) {

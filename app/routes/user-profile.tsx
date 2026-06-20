@@ -7,7 +7,7 @@ import { RecordCard } from "../components/RecordCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { createDb } from "../db/client.server";
 import { records, users } from "../db/schema";
-import { getCurrentUser, normalizeUsername } from "../services/auth.server";
+import { getCurrentUser, normalizeUsername, toPublicCurrentUser } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 import { formatBountyPrompt, type BountyRuleType } from "../services/bounty";
 
@@ -64,7 +64,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     }>()]);
 
   return {
-    currentUser,
+    currentUser: toPublicCurrentUser(currentUser),
     isOwner: currentUser?.id === profile.id,
     profile: {
       username: profile.username,

@@ -6,7 +6,7 @@ import { Avatar } from "../components/Avatar";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { createDb } from "../db/client.server";
 import { users } from "../db/schema";
-import { requireUser } from "../services/auth.server";
+import { requireUser, toPublicCurrentUser } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 
 const maxAvatarBytes = 2 * 1024 * 1024;
@@ -21,7 +21,7 @@ export function headers() {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  return { currentUser: await requireUser(request, context) };
+  return { currentUser: toPublicCurrentUser(await requireUser(request, context))! };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {

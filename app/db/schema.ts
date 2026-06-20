@@ -6,6 +6,7 @@ import {
   integer,
   sqliteTable,
   text,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable(
@@ -101,6 +102,45 @@ export const bountyClaims = sqliteTable(
     claimedAt: integer("claimed_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [index("bounty_claims_user_id_idx").on(table.userId)],
+);
+
+export const uuidObjects = sqliteTable("uuid_objects", {
+  id: text("id").primaryKey(),
+  objectType: text("object_type", {
+    enum: ["record", "bounty", "claim", "connection"],
+  }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const connections = sqliteTable(
+  "connections",
+  {
+    id: text("id").primaryKey(),
+    sourceId: text("source_id").notNull().references(() => uuidObjects.id),
+    targetId: text("target_id").notNull().references(() => uuidObjects.id),
+    relationship: text("relationship", {
+      enum: [
+        "REPLIES_TO", "ANSWERS", "USES_RECORD", "REFERENCES",
+        "SUPPORTS", "DISPUTES", "CORRECTS",
+      ],
+    }).notNull(),
+    origin: text("origin", { enum: ["system", "user"] }).notNull(),
+    creatorUserId: text("creator_user_id").references(() => users.id),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    check("connections_no_self_check", sql`${table.sourceId} <> ${table.targetId}`),
+    index("connections_source_active_idx").on(table.sourceId, table.createdAt),
+    index("connections_target_active_idx").on(table.targetId, table.createdAt),
+    index("connections_creator_idx").on(table.creatorUserId, table.createdAt),
+    uniqueIndex("connections_user_active_unique")
+      .on(table.sourceId, table.targetId, table.relationship, table.creatorUserId)
+      .where(sql`${table.origin} = 'user' AND ${table.deletedAt} IS NULL`),
+    uniqueIndex("connections_system_active_unique")
+      .on(table.sourceId, table.targetId, table.relationship)
+      .where(sql`${table.origin} = 'system' AND ${table.deletedAt} IS NULL`),
+  ],
 );
 
 export const sessions = sqliteTable(

@@ -3,14 +3,17 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import type { Route } from "./+types/record";
 import { RecordCard } from "../components/RecordCard";
+import { ConnectionsPanel } from "../components/ConnectionsPanel";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { createDb } from "../db/client.server";
 import { records, users } from "../db/schema";
 import {
   getCurrentUser,
   requireUser,
+  toPublicCurrentUser,
   validateUuid,
 } from "../services/auth.server";
+import { createReply, getConnectionLists } from "../services/connections.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 
 export function meta({ data }: Route.MetaArgs) {
@@ -36,7 +39,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
 
   const env = getCloudflareEnv(context);
   const db = createDb(env.DB);
-  const [currentUser, recordRows, replyRows] = await Promise.all([
+  const [currentUser, recordRows, replyRows, connections] = await Promise.all([
     getCurrentUser(request, context),
     db
       .select({
@@ -49,11 +52,12 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
         createdAt: records.createdAt,
         userId: records.userId,
         parentRecordId: records.parentRecordId,
+        deletedAt: records.deletedAt,
         replyCount: replyCountSql,
       })
       .from(records)
       .innerJoin(users, eq(records.userId, users.id))
-      .where(and(eq(records.id, uuid), isNull(records.deletedAt)))
+      .where(eq(records.id, uuid))
       .limit(1),
     db
       .select({
@@ -75,6 +79,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
         ),
       )
       .orderBy(asc(records.createdAt)),
+    getConnectionLists(env.DB, uuid),
   ]);
   const [record] = recordRows;
 
@@ -82,16 +87,21 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     throw new Response("Not Found", { status: 404, statusText: "Not Found" });
   }
 
-  const { userId, parentRecordId, ...publicRecord } = record;
+  const { userId, parentRecordId, deletedAt, ...publicRecord } = record;
+  const deleted = deletedAt !== null;
 
   return {
-    currentUser,
-    isOwner: currentUser?.id === userId,
+    currentUser: toPublicCurrentUser(currentUser),
+    isOwner: !deleted && currentUser?.id === userId,
     isReply: parentRecordId !== null,
+    deleted,
+    connections,
     record: {
       ...publicRecord,
-      displayName: record.displayName || record.username,
-      hasAvatar: Boolean(record.avatarKey),
+      username: deleted ? "" : record.username,
+      displayName: deleted ? "" : record.displayName || record.username,
+      hasAvatar: deleted ? false : Boolean(record.avatarKey),
+      body: deleted ? "" : record.body,
       createdAt: record.createdAt.toISOString(),
       replyCount: Number(record.replyCount),
     },
@@ -163,12 +173,9 @@ export async function action({ request, context, params }: Route.ActionArgs) {
     );
   }
 
-  await db.insert(records).values({
-    id: crypto.randomUUID(),
-    userId: currentUser.id,
-    parentRecordId: targetRecord.id,
-    body,
-    createdAt: new Date(),
+  await createReply(env.DB, {
+    id: crypto.randomUUID(), userId: currentUser.id,
+    parentId: targetRecord.id, body, createdAt: Date.now(),
   });
 
   return redirect(`/record/${uuid}`);
@@ -176,7 +183,7 @@ export async function action({ request, context, params }: Route.ActionArgs) {
 
 export default function Record({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
-  const { currentUser, isOwner, isReply, record, replies } = loaderData;
+  const { currentUser, isOwner, isReply, deleted, record, replies, connections } = loaderData;
   const homeUrl = currentUser ? "/home" : "/";
   const isReplying =
     navigation.state === "submitting" &&
@@ -224,8 +231,8 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 lg:px-8">
-        <div className="card bg-base-100 shadow mb-4">
-          <RecordCard record={record} />
+        <div className={`card bg-base-100 shadow mb-4 ${deleted ? "border border-dashed border-base-content/30" : ""}`}>
+          {deleted ? <div className="card-body"><span className="badge badge-outline w-fit">Deleted record</span><h1 className="text-2xl font-bold">Deleted record</h1><p className="font-mono text-xs text-base-content/45 break-all">{record.id}</p><p className="text-sm text-base-content/55">This record was deleted by its author.</p></div> : <RecordCard record={record} />}
           {isOwner && (
             <div className="px-4 pb-4 flex justify-end">
               <Form method="post">
@@ -245,7 +252,7 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
           )}
         </div>
 
-        <div className="card bg-base-100 shadow mb-4">
+        {!deleted && <div className="card bg-base-100 shadow mb-4">
           <div className="card-body p-4">
             {currentUser ? (
               <Form
@@ -282,7 +289,7 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
               </p>
             )}
           </div>
-        </div>
+        </div>}
 
         <div className="card bg-base-100 shadow">
           <div className="px-4 py-3 border-b border-base-200">
@@ -308,6 +315,7 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
             ))
           )}
         </div>
+        <ConnectionsPanel objectId={record.id} connections={connections} />
       </main>
     </div>
   );

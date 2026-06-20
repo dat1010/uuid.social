@@ -22,6 +22,14 @@ export type CurrentUser = {
   hasAvatar: boolean;
 };
 
+export type PublicCurrentUser = Omit<CurrentUser, "id">;
+
+export function toPublicCurrentUser(user: CurrentUser | null) {
+  if (!user) return null;
+  const { id: _privateId, ...publicUser } = user;
+  return publicUser;
+}
+
 export function normalizeUsername(value: string) {
   return value.trim().toLowerCase();
 }

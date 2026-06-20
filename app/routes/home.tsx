@@ -8,7 +8,7 @@ import { BountyTeaser } from "../components/BountyTeaser";
 import type { Route } from "./+types/home";
 import { createDb } from "../db/client.server";
 import { records as recordsTable, users } from "../db/schema";
-import { requireUser } from "../services/auth.server";
+import { requireUser, toPublicCurrentUser } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 import { ensureCurrentBounties } from "../services/bounties.server";
 
@@ -65,7 +65,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     }>()]);
 
   return {
-    currentUser,
+    currentUser: toPublicCurrentUser(currentUser)!,
     bounties: activeBounties.results.map((bounty) => ({
       id: bounty.id,
       cadence: bounty.cadence,
