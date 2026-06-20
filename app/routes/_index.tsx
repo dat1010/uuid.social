@@ -57,27 +57,23 @@ export default function Landing() {
           <h1 className="text-5xl font-bold mb-6 leading-tight">
             Your account is one very unlikely number.
           </h1>
-          <p className="text-base-content/70 text-lg leading-relaxed mb-12 max-w-xl mx-auto">
-            A version 4 UUID carries 122 random bits. Guessing someone
-            else&apos;s login key is functionally hopeless — but confidence is
-            free.
+          <p className="text-base-content/70 text-lg leading-relaxed mb-8 max-w-xl mx-auto">
+            Create an account and we&apos;ll generate your login UUID. Save it —
+            it&apos;s the only way back in.
           </p>
-
-          <aside className="landing-dare" aria-label="UUID guessing challenge">
-            <strong>guess a login uuid. you won&apos;t.</strong>
-            <a href="/login" className="btn btn-error btn-outline">
-              try
-            </a>
-          </aside>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a href="/signup" className="btn btn-primary btn-lg">
-              Create account
+              Get my UUID
             </a>
             <a href="/login" className="btn btn-outline btn-lg">
-              Sign in
+              I already have one
             </a>
           </div>
+
+          <aside className="landing-dare" aria-label="UUID guessing challenge">
+            <strong>guess someone else&apos;s login uuid. you won&apos;t.</strong>
+          </aside>
 
           <p className="mt-12 font-semibold">
             We don&apos;t want your personal data. We want UUIDs.
