@@ -20,9 +20,6 @@
 	"vars": {
 		"APP_ENV": "local"
 	},
-	"triggers": {
-		"crons": ["7 * * * *"]
-	},
 	"d1_databases": [
 		{
 			"binding": "DB",

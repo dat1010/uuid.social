@@ -45,7 +45,10 @@ export default function Landing() {
             </a>
           </div>
 
-          <p className="mt-12 text-sm text-base-content/40 max-w-md mx-auto leading-relaxed">
+          <p className="mt-12 font-semibold">
+            We don&apos;t want your personal data. We&apos;re here for the UUIDs.
+          </p>
+          <p className="mt-3 text-sm text-base-content/40 max-w-md mx-auto leading-relaxed">
             Your UUID is your only login key. We store it as a hash and never
             show it again. Lose it and you start over.
           </p>
