@@ -4,6 +4,7 @@ import {
   check,
   index,
   integer,
+  primaryKey,
   sqliteTable,
   text,
   uniqueIndex,
@@ -169,6 +170,8 @@ export const follows = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
+    primaryKey({ columns: [table.followerId, table.followingId] }),
+    check("follows_no_self_check", sql`${table.followerId} <> ${table.followingId}`),
     index("follows_follower_id_idx").on(table.followerId),
     index("follows_following_id_idx").on(table.followingId),
   ],

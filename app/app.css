@@ -27,6 +27,7 @@
 .graph-node-cta { display: block; margin-top: .7rem; font-size: .6rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .graph-node small { margin-top: .25rem; opacity: .55; font-size: .6rem; }
 .graph-node-record { color: #3976a8; }
+.graph-node-user { color: #6d5bba; }
 .graph-node-bounty { color: #b57913; clip-path: polygon(12% 0, 88% 0, 100% 50%, 88% 100%, 12% 100%, 0 50%); padding-inline: 1.2rem !important; }
 .graph-node-claim { color: #43835f; border-radius: 999px !important; }
 .graph-node-connection { width: 126px !important; padding: .48rem .7rem !important; color: var(--color-primary); border-radius: 999px !important; box-shadow: 0 5px 14px color-mix(in oklab, #000 12%, transparent) !important; text-align: center; }

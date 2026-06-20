@@ -13,6 +13,7 @@ export default [
   route("api/graph/:uuid", "routes/graph-api.ts"),
   route("profile", "routes/profile.tsx"),
   route("user/:username", "routes/user-profile.tsx"),
+  route("user/:username/graph", "routes/social-graph.tsx"),
   route("avatar/:username", "routes/avatar.ts"),
   route("record/:uuid", "routes/record.tsx"),
   route("post/:uuid", "routes/legacy-post.tsx"),

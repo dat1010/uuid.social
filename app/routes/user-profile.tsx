@@ -1,5 +1,5 @@
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
-import { Form, Link } from "react-router";
+import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import type { Route } from "./+types/user-profile";
 import { Avatar } from "../components/Avatar";
@@ -7,9 +7,10 @@ import { RecordCard } from "../components/RecordCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { createDb } from "../db/client.server";
 import { records, users } from "../db/schema";
-import { getCurrentUser, normalizeUsername, toPublicCurrentUser } from "../services/auth.server";
+import { getCurrentUser, normalizeUsername, requireUser, toPublicCurrentUser } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 import { formatBountyPrompt, type BountyRuleType } from "../services/bounty";
+import { getSocialSummary, setFollowing } from "../services/social.server";
 
 export function meta({ data }: Route.MetaArgs) {
   const name = data?.profile.displayName ?? "Profile";
@@ -38,7 +39,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
   const [profile] = profileRows;
   if (!profile) throw new Response("Not Found", { status: 404, statusText: "Not Found" });
 
-  const [profileRecords, trophyResult] = await Promise.all([db.select({
+  const [profileRecords, trophyResult, social] = await Promise.all([db.select({
     id: records.id,
     username: users.username,
     displayName: users.displayName,
@@ -61,7 +62,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     ).bind(profile.id).all<{
       cadence: "daily" | "weekly"; rule_type: BountyRuleType; character: string | null;
       target_value: number; claimed_at: number; trophy_count: number;
-    }>()]);
+    }>(), getSocialSummary(env.DB, profile.id, currentUser?.id ?? null)]);
 
   return {
     currentUser: toPublicCurrentUser(currentUser),
@@ -73,6 +74,9 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
       bio: profile.bio,
       hasAvatar: Boolean(profile.avatarKey),
       createdAt: profile.createdAt.toISOString(),
+      followers: social.followers,
+      following: social.following,
+      isFollowing: social.isFollowing,
     },
     trophies: trophyResult.results.map((trophy) => ({
       cadence: trophy.cadence,
@@ -90,8 +94,29 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
   };
 }
 
-export default function UserProfile({ loaderData }: Route.ComponentProps) {
+export async function action({ request, context, params }: Route.ActionArgs) {
+  const currentUser = await requireUser(request, context);
+  const username = normalizeUsername(params.username ?? "");
+  const formData = await request.formData();
+  const intent = String(formData.get("intent") ?? "");
+  if (intent !== "follow" && intent !== "unfollow") {
+    return data({ error: "Choose a valid action." }, { status: 400 });
+  }
+
+  const error = await setFollowing({
+    db: getCloudflareEnv(context).DB,
+    followerId: currentUser.id,
+    targetUsername: username,
+    following: intent === "follow",
+  });
+  if (error) return data({ error }, { status: 400 });
+  return redirect(`/user/${username}`);
+}
+
+export default function UserProfile({ loaderData, actionData }: Route.ComponentProps) {
   const { currentUser, isOwner, profile, records, trophies, trophyCount } = loaderData;
+  const navigation = useNavigation();
+  const isUpdatingFollow = navigation.state === "submitting";
   return (
     <div className="min-h-screen bg-base-200">
       <header className="navbar bg-base-100 shadow-sm px-4 lg:px-8">
@@ -107,7 +132,14 @@ export default function UserProfile({ loaderData }: Route.ComponentProps) {
           <div className="card-body gap-4">
             <div className="flex items-start justify-between gap-4">
               <Avatar {...profile} size="lg" />
-              {isOwner && <Link className="btn btn-outline btn-sm" to="/profile">Edit profile</Link>}
+              {isOwner ? <Link className="btn btn-outline btn-sm" to="/profile">Edit profile</Link> : currentUser ? (
+                <Form method="post">
+                  <input name="intent" type="hidden" value={profile.isFollowing ? "unfollow" : "follow"} />
+                  <button className={`btn btn-sm ${profile.isFollowing ? "btn-outline" : "btn-primary"}`} disabled={isUpdatingFollow}>
+                    {isUpdatingFollow ? "Updating..." : profile.isFollowing ? "Unfollow" : "Follow"}
+                  </button>
+                </Form>
+              ) : null}
             </div>
             <div>
               <h1 className="text-2xl font-bold">{profile.displayName}</h1>
@@ -115,6 +147,12 @@ export default function UserProfile({ loaderData }: Route.ComponentProps) {
             </div>
             {profile.status && <div className="badge badge-primary badge-outline">{profile.status}</div>}
             {profile.bio && <p className="whitespace-pre-wrap leading-relaxed">{profile.bio}</p>}
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <Link className="link link-hover" to={`/user/${profile.username}/graph?view=followers`}><strong>{profile.followers}</strong> followers</Link>
+              <Link className="link link-hover" to={`/user/${profile.username}/graph?view=following`}><strong>{profile.following}</strong> following</Link>
+              <Link className="link text-primary" to={`/user/${profile.username}/graph`}>View social graph</Link>
+            </div>
+            {actionData?.error && <div className="alert alert-error text-sm py-2" role="alert"><span>{actionData.error}</span></div>}
             <p className="text-xs text-base-content/40">Joined {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</p>
           </div>
         </section>
