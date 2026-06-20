@@ -2,7 +2,8 @@ import { and, eq, gt, isNull } from "drizzle-orm";
 import { createCookie, redirect } from "react-router";
 
 import { createDb } from "../db/client.server";
-import { sessions, users } from "../db/schema";
+import { admins, sessions, users } from "../db/schema";
+import { bootstrapAdminUsername } from "./admin";
 import { getCloudflareEnv } from "./cloudflare.server";
 
 const sessionLifetimeSeconds = 60 * 60 * 24 * 30;
@@ -20,6 +21,7 @@ export type CurrentUser = {
   status: string | null;
   bio: string | null;
   hasAvatar: boolean;
+  isAdmin: boolean;
 };
 
 export type PublicCurrentUser = Omit<CurrentUser, "id">;
@@ -108,14 +110,17 @@ export async function getCurrentUser(request: Request, context: unknown) {
       status: users.status,
       bio: users.bio,
       avatarKey: users.avatarKey,
+      adminUserId: admins.userId,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
+    .leftJoin(admins, eq(admins.userId, users.id))
     .where(
       and(
         eq(sessions.tokenHash, tokenHash),
         gt(sessions.expiresAt, new Date()),
         isNull(users.suspendedAt),
+        isNull(users.deletedAt),
       ),
     )
     .limit(1);
@@ -129,12 +134,21 @@ export async function getCurrentUser(request: Request, context: unknown) {
     status: result.status,
     bio: result.bio,
     hasAvatar: Boolean(result.avatarKey),
+    isAdmin: result.username === bootstrapAdminUsername || Boolean(result.adminUserId),
   } satisfies CurrentUser;
 }
 
 export async function requireUser(request: Request, context: unknown) {
   const user = await getCurrentUser(request, context);
   if (!user) throw redirect("/login");
+  return user;
+}
+
+export async function requireAdmin(request: Request, context: unknown) {
+  const user = await requireUser(request, context);
+  if (!user.isAdmin) {
+    throw new Response("Not Found", { status: 404, statusText: "Not Found" });
+  }
   return user;
 }
 

@@ -24,6 +24,7 @@ export const users = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
     suspendedAt: integer("suspended_at", { mode: "timestamp_ms" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
   },
   (table) => [index("users_username_idx").on(table.username)],
 );
@@ -42,6 +43,7 @@ export const records = sqliteTable(
     eventNumber: integer("event_number"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+    deletionOrigin: text("deletion_origin", { enum: ["author", "admin"] }),
   },
   (table) => [
     index("records_created_at_idx").on(table.createdAt),
@@ -175,6 +177,20 @@ export const follows = sqliteTable(
     index("follows_follower_id_idx").on(table.followerId),
     index("follows_following_id_idx").on(table.followingId),
   ],
+);
+
+export const admins = sqliteTable(
+  "admins",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => users.id),
+    grantedByUserId: text("granted_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("admins_granted_by_idx").on(table.grantedByUserId)],
 );
 
 export const userRelations = relations(users, ({ many }) => ({

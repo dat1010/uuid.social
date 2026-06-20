@@ -10,7 +10,7 @@ import {
   validateUuid,
 } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Sign in | uuid.social" }];
@@ -34,7 +34,11 @@ export async function action({ request, context }: Route.ActionArgs) {
   const [user] = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.uuidHash, uuidHash))
+    .where(and(
+      eq(users.uuidHash, uuidHash),
+      isNull(users.suspendedAt),
+      isNull(users.deletedAt),
+    ))
     .limit(1);
 
   if (!user) {

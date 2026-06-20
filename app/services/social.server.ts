@@ -39,7 +39,7 @@ export async function setFollowing(input: {
   following: boolean;
 }) {
   const target = await input.db.prepare(
-    "SELECT id FROM users WHERE username = ? AND suspended_at IS NULL",
+    "SELECT id FROM users WHERE username = ? AND suspended_at IS NULL AND deleted_at IS NULL",
   ).bind(input.targetUsername).first<{ id: string }>();
   if (!target) return "That user is not available.";
   if (target.id === input.followerId) return "You cannot follow yourself.";

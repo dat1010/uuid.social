@@ -53,6 +53,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
         userId: records.userId,
         parentRecordId: records.parentRecordId,
         deletedAt: records.deletedAt,
+        deletionOrigin: records.deletionOrigin,
         replyCount: replyCountSql,
       })
       .from(records)
@@ -87,14 +88,16 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     throw new Response("Not Found", { status: 404, statusText: "Not Found" });
   }
 
-  const { userId, parentRecordId, deletedAt, ...publicRecord } = record;
+  const { userId, parentRecordId, deletedAt, deletionOrigin, ...publicRecord } = record;
   const deleted = deletedAt !== null;
 
   return {
     currentUser: toPublicCurrentUser(currentUser),
     isOwner: !deleted && currentUser?.id === userId,
+    canDelete: !deleted && Boolean(currentUser && (currentUser.id === userId || currentUser.isAdmin)),
     isReply: parentRecordId !== null,
     deleted,
+    deletionOrigin,
     connections,
     record: {
       ...publicRecord,
@@ -142,7 +145,7 @@ export async function action({ request, context, params }: Route.ActionArgs) {
   const intent = String(formData.get("intent") ?? "");
 
   if (intent === "delete") {
-    if (targetRecord.userId !== currentUser.id) {
+    if (targetRecord.userId !== currentUser.id && !currentUser.isAdmin) {
       throw new Response("Forbidden", {
         status: 403,
         statusText: "Forbidden",
@@ -151,7 +154,10 @@ export async function action({ request, context, params }: Route.ActionArgs) {
 
     await db
       .update(records)
-      .set({ deletedAt: new Date() })
+      .set({
+        deletedAt: new Date(),
+        deletionOrigin: targetRecord.userId === currentUser.id ? "author" : "admin",
+      })
       .where(eq(records.id, targetRecord.id));
 
     return redirect(
@@ -183,7 +189,7 @@ export async function action({ request, context, params }: Route.ActionArgs) {
 
 export default function Record({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
-  const { currentUser, isOwner, isReply, deleted, record, replies, connections } = loaderData;
+  const { currentUser, canDelete, isReply, deleted, deletionOrigin, record, replies, connections } = loaderData;
   const homeUrl = currentUser ? "/home" : "/";
   const isReplying =
     navigation.state === "submitting" &&
@@ -232,8 +238,8 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
 
       <main className="max-w-2xl mx-auto px-4 py-6 lg:px-8">
         <div className={`card bg-base-100 shadow mb-4 ${deleted ? "border border-dashed border-base-content/30" : ""}`}>
-          {deleted ? <div className="card-body"><span className="badge badge-outline w-fit">Deleted record</span><h1 className="text-2xl font-bold">Deleted record</h1><p className="font-mono text-xs text-base-content/45 break-all">{record.id}</p><p className="text-sm text-base-content/55">This record was deleted by its author.</p></div> : <RecordCard record={record} />}
-          {isOwner && (
+          {deleted ? <div className="card-body"><span className="badge badge-outline w-fit">Deleted record</span><h1 className="text-2xl font-bold">Deleted record</h1><p className="font-mono text-xs text-base-content/45 break-all">{record.id}</p><p className="text-sm text-base-content/55">{deletionOrigin === "admin" ? "This record was removed by an administrator." : "This record was deleted by its author."}</p></div> : <RecordCard record={record} />}
+          {canDelete && (
             <div className="px-4 pb-4 flex justify-end">
               <Form method="post">
                 <input name="intent" type="hidden" value="delete" />
@@ -245,7 +251,7 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
                     ? "Deleting..."
                     : isReply
                       ? "Delete reply"
-                      : "Delete record"}
+                      : currentUser?.isAdmin ? "Moderate record" : "Delete record"}
                 </button>
               </Form>
             </div>

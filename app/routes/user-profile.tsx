@@ -34,6 +34,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
       bio: users.bio,
       avatarKey: users.avatarKey,
       createdAt: users.createdAt,
+      deletedAt: users.deletedAt,
     }).from(users).where(and(eq(users.username, username), isNull(users.suspendedAt))).limit(1),
   ]);
   const [profile] = profileRows;
@@ -74,6 +75,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
       bio: profile.bio,
       hasAvatar: Boolean(profile.avatarKey),
       createdAt: profile.createdAt.toISOString(),
+      deleted: Boolean(profile.deletedAt),
       followers: social.followers,
       following: social.following,
       isFollowing: social.isFollowing,
@@ -132,7 +134,7 @@ export default function UserProfile({ loaderData, actionData }: Route.ComponentP
           <div className="card-body gap-4">
             <div className="flex items-start justify-between gap-4">
               <Avatar {...profile} size="lg" />
-              {isOwner ? <Link className="btn btn-outline btn-sm" to="/profile">Edit profile</Link> : currentUser ? (
+              {isOwner ? <Link className="btn btn-outline btn-sm" to="/profile">Edit profile</Link> : currentUser && !profile.deleted ? (
                 <Form method="post">
                   <input name="intent" type="hidden" value={profile.isFollowing ? "unfollow" : "follow"} />
                   <button className={`btn btn-sm ${profile.isFollowing ? "btn-outline" : "btn-primary"}`} disabled={isUpdatingFollow}>
@@ -145,6 +147,7 @@ export default function UserProfile({ loaderData, actionData }: Route.ComponentP
               <h1 className="text-2xl font-bold">{profile.displayName}</h1>
               <p className="text-sm text-base-content/50">@{profile.username}</p>
             </div>
+            {profile.deleted && <div className="alert text-sm"><span className="badge badge-error">Deleted account</span><span>This profile is retained as read-only history.</span></div>}
             {profile.status && <div className="badge badge-primary badge-outline">{profile.status}</div>}
             {profile.bio && <p className="whitespace-pre-wrap leading-relaxed">{profile.bio}</p>}
             <div className="flex flex-wrap items-center gap-4 text-sm">

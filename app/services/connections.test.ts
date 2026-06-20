@@ -17,6 +17,7 @@ describe("public identity boundaries", () => {
       status: null,
       bio: null,
       hasAvatar: false,
+      isAdmin: false,
     });
 
     expect(JSON.stringify(publicUser)).not.toContain("private-user-id");
@@ -26,6 +27,7 @@ describe("public identity boundaries", () => {
       status: null,
       bio: null,
       hasAvatar: false,
+      isAdmin: false,
     });
   });
 });
