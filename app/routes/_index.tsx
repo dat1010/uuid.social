@@ -58,10 +58,17 @@ export default function Landing() {
             Your account is one very unlikely number.
           </h1>
           <p className="text-base-content/70 text-lg leading-relaxed mb-12 max-w-xl mx-auto">
-            A UUID is a 128-bit identifier. Version 4 UUIDs are random enough
-            that guessing someone else&apos;s key is functionally hopeless —
-            there are about 340 undecillion possible values.
+            A version 4 UUID carries 122 random bits. Guessing someone
+            else&apos;s login key is functionally hopeless — but confidence is
+            free.
           </p>
+
+          <aside className="landing-dare" aria-label="UUID guessing challenge">
+            <strong>guess a login uuid. you won&apos;t.</strong>
+            <a href="/login" className="btn btn-error btn-outline">
+              try
+            </a>
+          </aside>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a href="/signup" className="btn btn-primary btn-lg">
