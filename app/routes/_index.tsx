@@ -13,13 +13,16 @@ export function meta({}: Route.MetaArgs) {
 export default function Landing() {
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
-      <header className="navbar bg-base-100 shadow-sm px-6">
-        <div className="navbar-start">
+      <header className="navbar bg-base-100 shadow-sm px-3 py-2 flex-wrap sm:flex-nowrap sm:px-6 sm:py-0">
+        <div className="navbar-start w-full sm:w-1/2">
           <span className="font-bold tracking-widest uppercase text-sm">
             uuid.social
           </span>
         </div>
-        <div className="navbar-end gap-2">
+        <nav
+          aria-label="Main navigation"
+          className="navbar-end w-full gap-1 sm:w-1/2 sm:gap-2"
+        >
           <a
             aria-label="View uuid.social on GitHub"
             className="btn btn-ghost btn-sm btn-square"
@@ -45,7 +48,7 @@ export default function Landing() {
           <a href="/signup" className="btn btn-primary btn-sm">
             Sign up
           </a>
-        </div>
+        </nav>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4 py-16">
