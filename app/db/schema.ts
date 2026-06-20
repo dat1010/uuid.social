@@ -1,6 +1,7 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   type AnySQLiteColumn,
+  check,
   index,
   integer,
   sqliteTable,
@@ -36,6 +37,7 @@ export const records = sqliteTable(
       (): AnySQLiteColumn => records.id,
     ),
     body: text("body").notNull(),
+    eventNumber: integer("event_number"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
   },
@@ -44,6 +46,61 @@ export const records = sqliteTable(
     index("records_user_id_idx").on(table.userId),
     index("records_parent_record_id_idx").on(table.parentRecordId),
   ],
+);
+
+export const bounties = sqliteTable(
+  "bounties",
+  {
+    id: text("id").primaryKey(),
+    cadence: text("cadence", { enum: ["daily", "weekly"] }).notNull(),
+    ruleType: text("rule_type", {
+      enum: ["character_count", "event_gap"],
+    }).notNull(),
+    character: text("character"),
+    targetValue: integer("target_value").notNull(),
+    startsAt: integer("starts_at", { mode: "timestamp_ms" }).notNull(),
+    endsAt: integer("ends_at", { mode: "timestamp_ms" }).notNull(),
+    sampleRecordIdA: text("sample_record_id_a").notNull(),
+    sampleRecordIdB: text("sample_record_id_b"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    check(
+      "bounties_id_uuid_v4_check",
+      sql`length(${table.id}) = 36
+        AND ${table.id} = lower(${table.id})
+        AND length(replace(${table.id}, '-', '')) = 32
+        AND replace(${table.id}, '-', '') NOT GLOB '*[^0-9a-f]*'
+        AND substr(${table.id}, 9, 1) = '-'
+        AND substr(${table.id}, 14, 1) = '-'
+        AND substr(${table.id}, 15, 1) = '4'
+        AND substr(${table.id}, 19, 1) = '-'
+        AND substr(${table.id}, 20, 1) IN ('8', '9', 'a', 'b')
+        AND substr(${table.id}, 24, 1) = '-'`,
+    ),
+    index("bounties_period_idx").on(table.cadence, table.startsAt),
+    index("bounties_ends_at_idx").on(table.endsAt),
+  ],
+);
+
+export const bountyClaims = sqliteTable(
+  "bounty_claims",
+  {
+    id: text("id").primaryKey(),
+    bountyId: text("bounty_id")
+      .notNull()
+      .unique()
+      .references(() => bounties.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    recordIdA: text("record_id_a")
+      .notNull()
+      .references(() => records.id),
+    recordIdB: text("record_id_b").references(() => records.id),
+    claimedAt: integer("claimed_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("bounty_claims_user_id_idx").on(table.userId)],
 );
 
 export const sessions = sqliteTable(

@@ -3,12 +3,14 @@ import { data, Form, useNavigation } from "react-router";
 import { RecordCard } from "../components/RecordCard";
 import { Avatar } from "../components/Avatar";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { BountyTeaser } from "../components/BountyTeaser";
 
 import type { Route } from "./+types/home";
 import { createDb } from "../db/client.server";
 import { records as recordsTable, users } from "../db/schema";
 import { requireUser } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
+import { ensureCurrentBounties } from "../services/bounties.server";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -25,13 +27,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const currentUser = await requireUser(request, context);
   const env = getCloudflareEnv(context);
   const db = createDb(env.DB);
-  const records = await db
+  await ensureCurrentBounties(env.DB);
+  const [records, activeBounties] = await Promise.all([db
     .select({
       id: recordsTable.id,
       username: users.username,
       displayName: users.displayName,
       avatarKey: users.avatarKey,
       body: recordsTable.body,
+      eventNumber: recordsTable.eventNumber,
       createdAt: recordsTable.createdAt,
       replyCount: sql<number>`(
         select count(*) from records as replies
@@ -48,10 +52,29 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       ),
     )
     .orderBy(desc(recordsTable.createdAt))
-    .limit(50);
+    .limit(50), env.DB.prepare(
+      `SELECT b.id, b.cadence, b.rule_type, b.character, b.target_value, b.ends_at,
+              u.username AS winner_username
+       FROM bounties b
+       LEFT JOIN bounty_claims c ON c.bounty_id = b.id
+       LEFT JOIN users u ON u.id = c.user_id
+       WHERE b.ends_at > ? ORDER BY b.ends_at, b.cadence`,
+    ).bind(Date.now()).all<{
+      id: string; cadence: "daily" | "weekly"; rule_type: "character_count" | "event_gap";
+      character: string | null; target_value: number; ends_at: number; winner_username: string | null;
+    }>()]);
 
   return {
     currentUser,
+    bounties: activeBounties.results.map((bounty) => ({
+      id: bounty.id,
+      cadence: bounty.cadence,
+      ruleType: bounty.rule_type,
+      character: bounty.character,
+      targetValue: bounty.target_value,
+      endsAt: new Date(bounty.ends_at).toISOString(),
+      winnerUsername: bounty.winner_username,
+    })),
     records: records.map((record) => ({
       ...record,
       displayName: record.displayName || record.username,
@@ -88,7 +111,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function Home({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
-  const { currentUser, records } = loaderData;
+  const { currentUser, records, bounties } = loaderData;
   const isPublishing = navigation.formAction === "/home";
 
   return (
@@ -100,6 +123,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
           </a>
         </div>
         <div className="navbar-end gap-1">
+          <a className="btn btn-ghost btn-sm" href="/bounties">Bounties</a>
           <ThemeToggle />
           <Form action="/logout" method="post">
             <button className="btn btn-ghost btn-sm" type="submit">
@@ -112,8 +136,8 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
       <main className="max-w-4xl mx-auto px-4 py-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
           {/* Sidebar */}
-          <aside className="card bg-base-100 shadow h-fit">
-            <div className="card-body p-4 gap-3">
+          <aside className="flex flex-col gap-4 h-fit">
+            <div className="card bg-base-100 shadow"><div className="card-body p-4 gap-3">
               <a href={`/user/${currentUser.username}`}>
                 <Avatar {...currentUser} />
               </a>
@@ -123,7 +147,8 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
               </div>
               {currentUser.status && <p className="text-sm leading-relaxed">{currentUser.status}</p>}
               <a className="btn btn-outline btn-sm mt-1" href="/profile">Edit profile</a>
-            </div>
+            </div></div>
+            <BountyTeaser bounties={bounties} />
           </aside>
 
           {/* Timeline */}

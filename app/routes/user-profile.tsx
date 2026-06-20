@@ -9,6 +9,7 @@ import { createDb } from "../db/client.server";
 import { records, users } from "../db/schema";
 import { getCurrentUser, normalizeUsername } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
+import { formatBountyPrompt, type BountyRuleType } from "../services/bounty";
 
 export function meta({ data }: Route.MetaArgs) {
   const name = data?.profile.displayName ?? "Profile";
@@ -37,12 +38,13 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
   const [profile] = profileRows;
   if (!profile) throw new Response("Not Found", { status: 404, statusText: "Not Found" });
 
-  const profileRecords = await db.select({
+  const [profileRecords, trophyResult] = await Promise.all([db.select({
     id: records.id,
     username: users.username,
     displayName: users.displayName,
     avatarKey: users.avatarKey,
     body: records.body,
+    eventNumber: records.eventNumber,
     createdAt: records.createdAt,
     replyCount: sql<number>`(
       select count(*) from records as replies
@@ -51,7 +53,15 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
   }).from(records)
     .innerJoin(users, eq(records.userId, users.id))
     .where(and(eq(records.userId, profile.id), isNull(records.deletedAt), isNull(records.parentRecordId)))
-    .orderBy(desc(records.createdAt)).limit(50);
+    .orderBy(desc(records.createdAt)).limit(50), env.DB.prepare(
+      `SELECT b.cadence, b.rule_type, b.character, b.target_value, c.claimed_at,
+              count(*) OVER () AS trophy_count
+       FROM bounty_claims c JOIN bounties b ON b.id = c.bounty_id
+       WHERE c.user_id = ? ORDER BY c.claimed_at DESC LIMIT 12`,
+    ).bind(profile.id).all<{
+      cadence: "daily" | "weekly"; rule_type: BountyRuleType; character: string | null;
+      target_value: number; claimed_at: number; trophy_count: number;
+    }>()]);
 
   return {
     currentUser,
@@ -64,6 +74,12 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
       hasAvatar: Boolean(profile.avatarKey),
       createdAt: profile.createdAt.toISOString(),
     },
+    trophies: trophyResult.results.map((trophy) => ({
+      cadence: trophy.cadence,
+      prompt: formatBountyPrompt({ ruleType: trophy.rule_type, character: trophy.character, targetValue: trophy.target_value }),
+      claimedAt: new Date(trophy.claimed_at).toISOString(),
+    })),
+    trophyCount: trophyResult.results[0]?.trophy_count ?? 0,
     records: profileRecords.map((record) => ({
       ...record,
       displayName: record.displayName || record.username,
@@ -75,13 +91,14 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
 }
 
 export default function UserProfile({ loaderData }: Route.ComponentProps) {
-  const { currentUser, isOwner, profile, records } = loaderData;
+  const { currentUser, isOwner, profile, records, trophies, trophyCount } = loaderData;
   return (
     <div className="min-h-screen bg-base-200">
       <header className="navbar bg-base-100 shadow-sm px-4 lg:px-8">
         <div className="navbar-start"><Link className="font-bold tracking-widest uppercase text-sm" to={currentUser ? "/home" : "/"}>uuid.social</Link></div>
         <div className="navbar-end gap-2">
           <ThemeToggle />
+          <Link className="btn btn-ghost btn-sm" to="/bounties">Bounties</Link>
           {currentUser ? <><Link className="btn btn-ghost btn-sm" to="/home">Home</Link><Form action="/logout" method="post"><button className="btn btn-ghost btn-sm">Logout</button></Form></> : <Link className="btn btn-primary btn-sm" to="/login">Sign in</Link>}
         </div>
       </header>
@@ -100,6 +117,13 @@ export default function UserProfile({ loaderData }: Route.ComponentProps) {
             {profile.bio && <p className="whitespace-pre-wrap leading-relaxed">{profile.bio}</p>}
             <p className="text-xs text-base-content/40">Joined {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</p>
           </div>
+        </section>
+        <section className="card bg-base-100 shadow mb-4">
+          <div className="px-4 py-3 border-b border-base-200 flex items-center justify-between">
+            <h2 className="font-bold text-sm">Bounty trophies</h2>
+            <span className="badge badge-primary">{trophyCount}</span>
+          </div>
+          {trophies.length === 0 ? <div className="card-body py-6 text-sm text-base-content/40">No UUID bounties claimed yet.</div> : <div className="card-body p-4 gap-2">{trophies.map((trophy, index) => <div className="rounded-box border border-base-300 p-3" key={`${trophy.claimedAt}-${index}`}><div className="flex items-center gap-2"><span aria-hidden="true" className="text-primary">◆</span><span className="badge badge-ghost badge-sm capitalize">{trophy.cadence}</span></div><p className="text-xs mt-2">{trophy.prompt}</p></div>)}</div>}
         </section>
         <section className="card bg-base-100 shadow">
           <div className="px-4 py-3 border-b border-base-200"><h2 className="font-bold text-sm">Records</h2></div>

@@ -18,6 +18,7 @@ export default function Landing() {
           <span className="font-bold tracking-widest uppercase text-sm">uuid.social</span>
         </div>
         <div className="navbar-end gap-2">
+          <a href="/bounties" className="btn btn-ghost btn-sm">Bounties</a>
           <a href="/login" className="btn btn-ghost btn-sm">Sign in</a>
           <a href="/signup" className="btn btn-primary btn-sm">Sign up</a>
         </div>

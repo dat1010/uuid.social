@@ -5,6 +5,7 @@ export default [
   route("login", "routes/login.tsx"),
   route("signup", "routes/signup.tsx"),
   route("home", "routes/home.tsx"),
+  route("bounties", "routes/bounties.tsx"),
   route("profile", "routes/profile.tsx"),
   route("user/:username", "routes/user-profile.tsx"),
   route("avatar/:username", "routes/avatar.ts"),

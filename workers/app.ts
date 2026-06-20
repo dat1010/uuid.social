@@ -1,4 +1,5 @@
 import { createRequestHandler } from "react-router";
+import { ensureCurrentBounties } from "../app/services/bounties.server";
 
 const requestHandler = createRequestHandler(
   () => import("virtual:react-router/server-build"),
@@ -17,5 +18,8 @@ export default {
     return requestHandler(request, {
       cloudflare: { env, ctx },
     });
+  },
+  async scheduled(_controller, env, ctx) {
+    ctx.waitUntil(ensureCurrentBounties(env.DB));
   },
 } satisfies ExportedHandler<Env>;

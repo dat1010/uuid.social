@@ -8,6 +8,7 @@
     "typecheck": "wrangler types && react-router typegen && tsc -b",
     "deploy": "npm run build && wrangler deploy",
     "preview": "npm run build && vite preview",
+    "test": "vitest run --config vitest.config.ts",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply uuid-social-db --local",
@@ -33,6 +34,7 @@
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.3",
+    "vitest": "^3.2.6",
     "wrangler": "^4.100.0"
   }
 }

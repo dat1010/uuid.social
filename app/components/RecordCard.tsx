@@ -8,6 +8,7 @@ export type RecordCardData = {
   displayName: string;
   hasAvatar: boolean;
   body: string;
+  eventNumber: number | null;
   createdAt: string;
   replyCount: number;
 };
@@ -43,6 +44,7 @@ export function RecordCard({ record, className = "" }: RecordCardProps) {
         {record.replyCount} {record.replyCount === 1 ? "reply" : "replies"}
       </Link>
       <p className="mt-4 text-xs text-base-content/50">
+        {record.eventNumber !== null && <>Event #{record.eventNumber.toLocaleString("en-US")} · </>}
         Record UUID:{" "}
         <Link
           className="link link-hover break-all"

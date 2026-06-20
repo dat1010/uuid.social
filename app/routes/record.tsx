@@ -45,6 +45,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
         displayName: users.displayName,
         avatarKey: users.avatarKey,
         body: records.body,
+        eventNumber: records.eventNumber,
         createdAt: records.createdAt,
         userId: records.userId,
         parentRecordId: records.parentRecordId,
@@ -61,6 +62,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
         displayName: users.displayName,
         avatarKey: users.avatarKey,
         body: records.body,
+        eventNumber: records.eventNumber,
         createdAt: records.createdAt,
         replyCount: replyCountSql,
       })
@@ -196,6 +198,7 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
         </div>
         <div className="navbar-end gap-2">
           <ThemeToggle />
+          <Link className="btn btn-ghost btn-sm" to="/bounties">Bounties</Link>
           {currentUser ? (
             <>
               <Link className="btn btn-ghost btn-sm" to="/home">
