@@ -15,12 +15,20 @@ export default function Landing() {
     <div className="min-h-screen bg-base-200 flex flex-col">
       <header className="navbar bg-base-100 shadow-sm px-6">
         <div className="navbar-start">
-          <span className="font-bold tracking-widest uppercase text-sm">uuid.social</span>
+          <span className="font-bold tracking-widest uppercase text-sm">
+            uuid.social
+          </span>
         </div>
         <div className="navbar-end gap-2">
-          <a href="/bounties" className="btn btn-ghost btn-sm">Bounties</a>
-          <a href="/login" className="btn btn-ghost btn-sm">Sign in</a>
-          <a href="/signup" className="btn btn-primary btn-sm">Sign up</a>
+          <a href="/bounties" className="btn btn-ghost btn-sm">
+            Bounties
+          </a>
+          <a href="/login" className="btn btn-ghost btn-sm">
+            Sign in
+          </a>
+          <a href="/signup" className="btn btn-primary btn-sm">
+            Sign up
+          </a>
         </div>
       </header>
 
@@ -46,7 +54,7 @@ export default function Landing() {
           </div>
 
           <p className="mt-12 font-semibold">
-            We don&apos;t want your personal data. We&apos;re here for the UUIDs.
+            We don&apos;t want your personal data. We want UUIDs.
           </p>
           <p className="mt-3 text-sm text-base-content/40 max-w-md mx-auto leading-relaxed">
             Your UUID is your only login key. We store it as a hash and never
