@@ -27,6 +27,12 @@
 			"database_id": "0b081d02-9a29-4bf5-a4e5-52916e1b29b6"
 		}
 	],
+	"r2_buckets": [
+		{
+			"binding": "AVATARS",
+			"bucket_name": "uuid-social-avatars"
+		}
+	],
 	"observability": {
 		"enabled": true
 	},

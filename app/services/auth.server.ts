@@ -17,6 +17,9 @@ export type CurrentUser = {
   id: string;
   username: string;
   displayName: string;
+  status: string | null;
+  bio: string | null;
+  hasAvatar: boolean;
 };
 
 export function normalizeUsername(value: string) {
@@ -94,6 +97,9 @@ export async function getCurrentUser(request: Request, context: unknown) {
       id: users.id,
       username: users.username,
       displayName: users.displayName,
+      status: users.status,
+      bio: users.bio,
+      avatarKey: users.avatarKey,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
@@ -112,6 +118,9 @@ export async function getCurrentUser(request: Request, context: unknown) {
     id: result.id,
     username: result.username,
     displayName: result.displayName || result.username,
+    status: result.status,
+    bio: result.bio,
+    hasAvatar: Boolean(result.avatarKey),
   } satisfies CurrentUser;
 }
 

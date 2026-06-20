@@ -9,6 +9,7 @@ UUID, shown once during signup. Losing it means losing access to that account.
 ## Current Features
 
 - Unique public usernames
+- Public profiles with status, bio, and R2-backed profile images
 - UUID-only signup and login
 - One-time UUID reveal with copy support
 - Server-side sessions stored in Cloudflare D1
@@ -48,8 +49,7 @@ There is intentionally no account-recovery mechanism.
 - Wrangler
 - GitHub Actions
 
-R2-backed profile images and Terraform-managed infrastructure are planned but
-are not active yet.
+Profile images are stored in Cloudflare R2, while profile metadata lives in D1.
 
 ## Local Development
 

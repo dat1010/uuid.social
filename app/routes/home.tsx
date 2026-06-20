@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { data, Form, useNavigation } from "react-router";
 import { RecordCard } from "../components/RecordCard";
+import { Avatar } from "../components/Avatar";
 import { ThemeToggle } from "../components/ThemeToggle";
 
 import type { Route } from "./+types/home";
@@ -29,6 +30,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       id: recordsTable.id,
       username: users.username,
       displayName: users.displayName,
+      avatarKey: users.avatarKey,
       body: recordsTable.body,
       createdAt: recordsTable.createdAt,
       replyCount: sql<number>`(
@@ -53,6 +55,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     records: records.map((record) => ({
       ...record,
       displayName: record.displayName || record.username,
+      hasAvatar: Boolean(record.avatarKey),
       createdAt: record.createdAt.toISOString(),
       replyCount: Number(record.replyCount),
     })),
@@ -111,17 +114,15 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
           {/* Sidebar */}
           <aside className="card bg-base-100 shadow h-fit">
             <div className="card-body p-4 gap-3">
-              <div className="avatar avatar-placeholder">
-                <div className="bg-primary text-primary-content rounded-full w-12">
-                  <span className="text-lg font-bold">
-                    {currentUser.displayName.slice(0, 1).toUpperCase()}
-                  </span>
-                </div>
-              </div>
+              <a href={`/user/${currentUser.username}`}>
+                <Avatar {...currentUser} />
+              </a>
               <div>
-                <p className="font-bold">{currentUser.displayName}</p>
+                <a className="font-bold link link-hover" href={`/user/${currentUser.username}`}>{currentUser.displayName}</a>
                 <p className="text-sm text-base-content/50">@{currentUser.username}</p>
               </div>
+              {currentUser.status && <p className="text-sm leading-relaxed">{currentUser.status}</p>}
+              <a className="btn btn-outline btn-sm mt-1" href="/profile">Edit profile</a>
             </div>
           </aside>
 

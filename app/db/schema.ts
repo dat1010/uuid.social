@@ -14,6 +14,7 @@ export const users = sqliteTable(
     uuidHash: text("uuid_hash").notNull().unique(),
     username: text("username").notNull().unique(),
     displayName: text("display_name"),
+    status: text("status"),
     bio: text("bio"),
     avatarKey: text("avatar_key"),
     websiteUrl: text("website_url"),

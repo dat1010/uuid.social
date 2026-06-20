@@ -1,5 +1,6 @@
 type AppEnv = Env & {
   AUTH_PEPPER: string;
+  AVATARS: R2Bucket;
 };
 
 type AppLoadContext = {

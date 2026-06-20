@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { Avatar } from "./Avatar";
 
 export type RecordCardData = {
   id: string;
   username: string;
   displayName: string;
+  hasAvatar: boolean;
   body: string;
   createdAt: string;
   replyCount: number;
@@ -19,15 +21,13 @@ export function RecordCard({ record, className = "" }: RecordCardProps) {
   return (
     <article className={`p-4 ${className}`}>
       <div className="flex items-center gap-3 mb-3">
-        <div className="avatar avatar-placeholder">
-          <div className="bg-primary text-primary-content rounded-full w-9">
-            <span className="text-sm font-bold">
-              {record.displayName.slice(0, 1).toUpperCase()}
-            </span>
-          </div>
-        </div>
+        <Link to={`/user/${record.username}`} aria-label={`${record.displayName}'s profile`}>
+          <Avatar {...record} size="sm" />
+        </Link>
         <div className="min-w-0">
-          <p className="font-bold text-sm truncate">{record.displayName}</p>
+          <Link className="font-bold text-sm truncate link link-hover block" to={`/user/${record.username}`}>
+            {record.displayName}
+          </Link>
           <p className="text-xs text-base-content/50">
             @{record.username} · <RecordDate value={record.createdAt} />
           </p>
