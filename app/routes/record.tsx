@@ -248,7 +248,11 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
         <div className="card bg-base-100 shadow mb-4">
           <div className="card-body p-4">
             {currentUser ? (
-              <Form className="flex flex-col gap-3" method="post">
+              <Form
+                className="flex flex-col gap-3"
+                key={isReplying ? "replying" : "idle"}
+                method="post"
+              >
                 <input name="intent" type="hidden" value="reply" />
                 <textarea
                   className="textarea textarea-bordered w-full min-h-24 resize-none"

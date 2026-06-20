@@ -18,8 +18,14 @@ UUID, shown once during signup. Losing it means losing access to that account.
 - Public record UUID permalinks
 - UUID-addressed replies and record threads
 - Immutable records that authors can soft-delete
+- Daily and weekly UUID bounties with public winner trophies
 - Logout and protected app routes
 - Automatic production deploys from `main`
+
+Usernames are normalized to lowercase and must contain 3-24 letters, numbers,
+underscores, or hyphens. Records and replies are limited to 500 characters.
+Profiles support an 80-character status, a 500-character bio, and JPEG, PNG, or
+WebP avatars up to 2 MB.
 
 ## Security Model
 
@@ -29,7 +35,8 @@ with the server-only `AUTH_PEPPER` secret.
 
 Successful login exchanges the UUID for an independent 256-bit random session
 token. The browser receives that token in an `HttpOnly`, `SameSite=Lax` cookie;
-only its SHA-256 hash is stored in D1.
+only its SHA-256 hash is stored in D1. Sessions expire after 30 days and are
+deleted from D1 on logout.
 
 An account credential UUID must never appear in URLs, logs, profile data, or
 timeline content. Record UUIDs are separate public identifiers and are
@@ -45,8 +52,10 @@ There is intentionally no account-recovery mechanism.
 - Cloudflare Workers
 - Cloudflare D1
 - Drizzle ORM
-- Tailwind CSS
+- Tailwind CSS and daisyUI
 - Wrangler
+- Vitest
+- Terraform
 - GitHub Actions
 
 Profile images are stored in Cloudflare R2, while profile metadata lives in D1.
@@ -57,7 +66,7 @@ Requirements:
 
 - Node.js 22
 - npm
-- A Cloudflare account for remote operations
+- A Cloudflare account and Wrangler authentication for remote operations only
 
 Install dependencies:
 
@@ -91,12 +100,35 @@ npm run dev
 
 The local URL is normally `http://localhost:5173`.
 
+Wrangler provides local D1 and R2 emulation, so normal development does not
+write to the production database or avatar bucket. Local state is stored under
+`.wrangler/`.
+
 ## Verification
 
 ```bash
+npm test
 npm run typecheck
 npm run build
 ```
+
+`npm test` runs the Vitest suite once. `typecheck` regenerates Cloudflare and
+React Router types before running the TypeScript project build.
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the local React Router development server |
+| `npm test` | Run the Vitest test suite |
+| `npm run typecheck` | Generate framework types and type-check the project |
+| `npm run build` | Create the production Worker build |
+| `npm run preview` | Build and serve the production output locally |
+| `npm run cf-typegen` | Regenerate Cloudflare binding types |
+| `npm run db:generate` | Generate SQL migrations from the Drizzle schema |
+| `npm run db:migrate:local` | Apply migrations to the local D1 database |
+| `npm run db:migrate:remote` | Apply migrations to the configured remote D1 database |
+| `npm run deploy` | Build and deploy the Worker with Wrangler |
 
 ## Database Migrations
 
@@ -117,6 +149,24 @@ Apply migrations to the production D1 database:
 ```bash
 npm run db:migrate:remote
 ```
+
+Migration files are committed under `migrations/` and applied in filename
+order. Review generated SQL before committing or applying it remotely.
+
+## Project Layout
+
+| Path | Purpose |
+| --- | --- |
+| `app/routes.ts` | Application route manifest |
+| `app/routes/` | React Router pages, loaders, and actions |
+| `app/components/` | Shared UI components |
+| `app/services/` | Authentication and bounty domain logic |
+| `app/db/schema.ts` | Drizzle schema for D1 |
+| `workers/app.ts` | Cloudflare Worker entry point and `www` redirect |
+| `migrations/` | Ordered D1 SQL migrations |
+| `wrangler.jsonc` | Worker routes and D1/R2 bindings |
+| `infra/` | Terraform for D1, R2, and DNS resources |
+| `docs/setup.md` | Production infrastructure and deployment setup |
 
 ## Deployment
 
@@ -143,6 +193,12 @@ Manual deployment is also available:
 ```bash
 npm run deploy
 ```
+
+For local development, `AUTH_PEPPER` belongs in `.dev.vars`. CLI operations
+that need a Cloudflare token can read `CLOUDFLARE_API_TOKEN` from a local
+`.env` copied from `.env.example`; neither file should be committed. Production
+`AUTH_PEPPER` must be created as a Wrangler secret, not as a plaintext variable
+in `wrangler.jsonc`.
 
 Do not rotate or delete the production `AUTH_PEPPER` after accounts exist.
 Changing it makes every existing UUID hash unverifiable.
