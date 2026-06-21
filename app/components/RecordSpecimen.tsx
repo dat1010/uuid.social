@@ -40,12 +40,6 @@ export function RecordSpecimen({ record, deleted, deletionOrigin, parentRecordId
         </section>
         <details className="specimen-details" open={reveal || undefined}>
           <summary>Specimen details</summary>
-          <div className="specimen-coordinate-grid">
-            <span><small>Region</small>{identity.coordinates.region}</span>
-            <span><small>Sector</small>{identity.coordinates.sector}</span>
-            <span><small>X / Y</small>{identity.coordinates.x} / {identity.coordinates.y}</span>
-            <span><small>Depth</small>{identity.coordinates.depth}</span>
-          </div>
           <ol className="specimen-traits">
             {identity.traits.map((trait) => <li key={trait.id}><div><strong>{trait.label}</strong><span>{trait.classification}</span></div><p>{trait.explanation}</p><small>Approx. 1 in {trait.oneIn.toLocaleString("en-US")}</small></li>)}
           </ol>
@@ -66,7 +60,7 @@ export function RecordSpecimen({ record, deleted, deletionOrigin, parentRecordId
             <dl>
               <div><dt>Name + sigil</dt><dd>The same UUID always produces the same visual identity.</dd></div>
               <div><dt>Classification</dt><dd>Pattern rarity, never quality, popularity, or value.</dd></div>
-              <div><dt>Traits + coordinates</dt><dd>Explanations and stable catalog references.</dd></div>
+              <div><dt>Traits</dt><dd>The detected patterns that explain the classification.</dd></div>
             </dl>
           </details>
         </aside>
