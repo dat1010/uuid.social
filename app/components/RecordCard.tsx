@@ -19,16 +19,17 @@ export type RecordCardData = {
 type RecordCardProps = {
   record: RecordCardData;
   className?: string;
+  showSpecimenIdentity?: boolean;
 };
 
-export function RecordCard({ record, className = "" }: RecordCardProps) {
-  const identity = generateRecordIdentity(record.id);
+export function RecordCard({ record, className = "", showSpecimenIdentity = true }: RecordCardProps) {
+  const identity = showSpecimenIdentity ? generateRecordIdentity(record.id) : null;
   return (
     <article className={`p-4 ${className}`}>
-      <Link className="specimen-compact" to={`/record/${record.id}`} aria-label={`${identity.name}, ${identity.classification} specimen`}>
+      {identity && <Link className="specimen-compact" to={`/record/${record.id}`} aria-label={`${identity.name}, ${identity.classification} specimen`}>
         <SpecimenSigil identity={identity} size="compact" />
         <span><strong>{identity.name}</strong><small>{identity.classification}</small></span>
-      </Link>
+      </Link>}
       <div className="flex items-center gap-3 mb-3">
         <Link to={`/user/${record.username}`} aria-label={`${record.displayName}'s profile`}>
           <Avatar {...record} size="sm" />

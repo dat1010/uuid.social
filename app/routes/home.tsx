@@ -212,6 +212,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
                   <RecordCard
                     key={record.id}
                     record={record}
+                    showSpecimenIdentity={false}
                     className={i < records.length - 1 ? "border-b border-base-200" : ""}
                   />
                 ))
