@@ -14,8 +14,11 @@ import { ensureCurrentBounties } from "../services/bounties.server";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Timeline | uuid.social" },
-    { name: "description", content: "The uuid.social timeline." },
+    { title: "Your Sequence | uuid.social" },
+    {
+      name: "description",
+      content: "The latest records from across uuid.social.",
+    },
   ];
 }
 
@@ -152,8 +155,15 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
             <BountyTeaser bounties={bounties} />
           </aside>
 
-          {/* Timeline */}
+          {/* Sequence */}
           <div className="flex flex-col gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">Your Sequence</h1>
+              <p className="mt-1 text-sm text-base-content/50">
+                The latest records from across uuid.social.
+              </p>
+            </div>
+
             {/* Composer */}
             <div className="card bg-base-100 shadow">
               <div className="card-body p-4">
@@ -187,7 +197,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
               </div>
             </div>
 
-            {/* Feed */}
+            {/* Records */}
             <div className="card bg-base-100 shadow">
               {records.length === 0 ? (
                 <div className="card-body items-center py-16 text-center">

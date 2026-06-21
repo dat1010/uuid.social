@@ -99,7 +99,7 @@ export default function Login({ actionData }: Route.ComponentProps) {
                 className="btn btn-primary w-full"
                 disabled={isPending}
               >
-                {isPending ? "Signing in..." : "Enter timeline"}
+                {isPending ? "Signing in..." : "Enter your sequence"}
               </button>
             </Form>
 

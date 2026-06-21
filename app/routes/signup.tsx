@@ -193,7 +193,7 @@ export default function Signup({ actionData }: Route.ComponentProps) {
                   onClick={() => window.location.replace("/home")}
                   type="button"
                 >
-                  Continue to timeline
+                  Continue to your sequence
                 </button>
               </div>
             )}
