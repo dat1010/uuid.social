@@ -3,6 +3,7 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/bounties";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { BountyCountdown } from "../components/BountyCountdown";
+import { BountySpecimenTrophy } from "../components/BountySpecimenTrophy";
 import { getCurrentUser, requireUser, toPublicCurrentUser, validateUuid, type PublicCurrentUser } from "../services/auth.server";
 import {
   formatBountyPrompt,
@@ -10,6 +11,7 @@ import {
 } from "../services/bounty";
 import { claimBounty, ensureCurrentBounties } from "../services/bounties.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
+import { deriveClaimSpecimenDistinction } from "../services/bounty-specimen";
 
 type BountyRow = {
   id: string;
@@ -164,8 +166,8 @@ function ArchiveRow({ bounty }: { bounty: ReturnType<typeof toBountyView> }) {
   </article>;
 }
 
-function Winner({ bounty }: { bounty: Pick<ReturnType<typeof toBountyView>, "winnerUsername" | "recordIdA" | "recordIdB"> }) {
-  return <p className="text-sm mt-2">Trophy claimed by <Link className="link font-bold" to={`/user/${bounty.winnerUsername}`}>@{bounty.winnerUsername}</Link> with <RecordLink id={bounty.recordIdA!} />{bounty.recordIdB && <> and <RecordLink id={bounty.recordIdB} /></>}.</p>;
+function Winner({ bounty }: { bounty: Pick<ReturnType<typeof toBountyView>, "winnerUsername" | "recordIdA" | "recordIdB" | "claimId" | "specimenDistinction"> }) {
+  return <div className="mt-2"><p className="text-sm">Trophy claimed by <Link className="link font-bold" to={`/user/${bounty.winnerUsername}`}>@{bounty.winnerUsername}</Link> with <RecordLink id={bounty.recordIdA!} />{bounty.recordIdB && <> and <RecordLink id={bounty.recordIdB} /></>}. {bounty.claimId && <Link className="link text-xs" to={`/claim/${bounty.claimId}`}>View claim</Link>}</p>{bounty.specimenDistinction && <BountySpecimenTrophy claimId={bounty.claimId} distinction={bounty.specimenDistinction} variant="compact" />}</div>;
 }
 
 function RecordLink({ id }: { id: string }) {
@@ -188,7 +190,13 @@ function toBountyView(row: BountyRow) {
     sampleRecordIdB: row.sample_record_id_b,
     recordIdA: row.record_id_a,
     recordIdB: row.record_id_b,
+    claimId: row.claim_id,
     winnerUsername: row.winner_username,
+    specimenDistinction: deriveClaimSpecimenDistinction(
+      row.id,
+      row.record_id_a,
+      row.record_id_b,
+    ),
   };
 }
 

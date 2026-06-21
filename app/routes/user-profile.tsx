@@ -5,12 +5,14 @@ import type { Route } from "./+types/user-profile";
 import { Avatar } from "../components/Avatar";
 import { RecordCard } from "../components/RecordCard";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { BountySpecimenTrophy } from "../components/BountySpecimenTrophy";
 import { createDb } from "../db/client.server";
 import { records, users } from "../db/schema";
 import { getCurrentUser, normalizeUsername, requireUser, toPublicCurrentUser } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 import { formatBountyPrompt, type BountyRuleType } from "../services/bounty";
 import { getSocialSummary, setFollowing } from "../services/social.server";
+import { deriveClaimSpecimenDistinction, type BountySpecimenDistinction } from "../services/bounty-specimen";
 
 export function meta({ data }: Route.MetaArgs) {
   const name = data?.profile.displayName ?? "Profile";
@@ -56,13 +58,15 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     .innerJoin(users, eq(records.userId, users.id))
     .where(and(eq(records.userId, profile.id), isNull(records.deletedAt), isNull(records.parentRecordId)))
     .orderBy(desc(records.createdAt)).limit(50), env.DB.prepare(
-      `SELECT b.cadence, b.rule_type, b.character, b.target_value, c.claimed_at,
+      `SELECT c.id AS claim_id, c.bounty_id, c.record_id_a, c.record_id_b,
+              b.cadence, b.rule_type, b.character, b.target_value, c.claimed_at,
               count(*) OVER () AS trophy_count
        FROM bounty_claims c JOIN bounties b ON b.id = c.bounty_id
        WHERE c.user_id = ? ORDER BY c.claimed_at DESC LIMIT 12`,
     ).bind(profile.id).all<{
       cadence: "daily" | "weekly"; rule_type: BountyRuleType; character: string | null;
       target_value: number; claimed_at: number; trophy_count: number;
+      claim_id: string; bounty_id: string; record_id_a: string; record_id_b: string | null;
     }>(), getSocialSummary(env.DB, profile.id, currentUser?.id ?? null)]);
 
   return {
@@ -81,9 +85,15 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
       isFollowing: social.isFollowing,
     },
     trophies: trophyResult.results.map((trophy) => ({
+      claimId: trophy.claim_id,
       cadence: trophy.cadence,
       prompt: formatBountyPrompt({ ruleType: trophy.rule_type, character: trophy.character, targetValue: trophy.target_value }),
       claimedAt: new Date(trophy.claimed_at).toISOString(),
+      specimenDistinction: deriveClaimSpecimenDistinction(
+        trophy.bounty_id,
+        trophy.record_id_a,
+        trophy.record_id_b,
+      ),
     })),
     trophyCount: trophyResult.results[0]?.trophy_count ?? 0,
     records: profileRecords.map((record) => ({
@@ -164,7 +174,7 @@ export default function UserProfile({ loaderData, actionData }: Route.ComponentP
             <h2 className="font-bold text-sm">Bounty trophies</h2>
             <span className="badge badge-primary">{trophyCount}</span>
           </div>
-          {trophies.length === 0 ? <div className="card-body py-6 text-sm text-base-content/40">No UUID bounties claimed yet.</div> : <div className="card-body p-4 gap-2">{trophies.map((trophy, index) => <div className="rounded-box border border-base-300 p-3" key={`${trophy.claimedAt}-${index}`}><div className="flex items-center gap-2"><span aria-hidden="true" className="text-primary">◆</span><span className="badge badge-ghost badge-sm capitalize">{trophy.cadence}</span></div><p className="text-xs mt-2">{trophy.prompt}</p></div>)}</div>}
+          {trophies.length === 0 ? <div className="card-body py-6 text-sm text-base-content/40">No UUID bounties claimed yet.</div> : <div className="card-body p-4 gap-2">{trophies.map((trophy) => <ProfileTrophy key={trophy.claimId} trophy={trophy} />)}</div>}
         </section>
         <section className="card bg-base-100 shadow">
           <div className="px-4 py-3 border-b border-base-200"><h2 className="font-bold text-sm">Records</h2></div>
@@ -173,4 +183,16 @@ export default function UserProfile({ loaderData, actionData }: Route.ComponentP
       </main>
     </div>
   );
+}
+
+type ProfileTrophyData = {
+  claimId: string;
+  cadence: "daily" | "weekly";
+  prompt: string;
+  claimedAt: string;
+  specimenDistinction: BountySpecimenDistinction | null;
+};
+
+function ProfileTrophy({ trophy }: { trophy: ProfileTrophyData }) {
+  return <article className="rounded-box border border-base-300 p-3"><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><span aria-hidden="true" className="text-primary">◆</span><span className="badge badge-ghost badge-sm capitalize">{trophy.cadence}</span></div><Link className="link text-[0.65rem]" to={`/claim/${trophy.claimId}`}>View claim</Link></div><p className="text-xs mt-2">{trophy.prompt}</p>{trophy.specimenDistinction && <BountySpecimenTrophy claimId={trophy.claimId} distinction={trophy.specimenDistinction} variant="compact" />}</article>;
 }

@@ -72,6 +72,37 @@
   .specimen-reveal *, .specimen-reveal { animation: none !important; transition: none !important; }
 }
 
+.bounty-specimen-trophy { --trophy-color: #b57913; margin-top: 1rem; overflow: hidden; border: 1px solid color-mix(in oklab, var(--trophy-color) 52%, var(--color-base-300)); border-left: .28rem solid var(--trophy-color); background: color-mix(in oklab, var(--trophy-color) 5%, var(--color-base-100)); }
+.bounty-specimen-exceptional { --trophy-color: #a64036; }
+.bounty-specimen-singular { --trophy-color: currentColor; background-image: repeating-linear-gradient(135deg, color-mix(in oklab, currentColor 5%, transparent) 0 1px, transparent 1px 10px); }
+.bounty-specimen-trophy > header { display: flex; align-items: center; gap: .7rem; padding: .75rem .85rem; border-bottom: 1px solid color-mix(in oklab, var(--trophy-color) 25%, var(--color-base-300)); }
+.bounty-specimen-trophy > header p { color: color-mix(in oklab, currentColor 48%, transparent); font-size: .55rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.bounty-specimen-trophy > header strong, .bounty-specimen-trophy > header a { display: block; color: var(--trophy-color); font-size: .78rem; font-weight: 800; text-transform: capitalize; }
+.bounty-specimen-trophy > header a { text-decoration: underline; text-underline-offset: .18rem; }
+.bounty-specimen-mark { color: var(--trophy-color); font-size: 1rem; }
+.bounty-specimen-exceptional .bounty-specimen-mark { text-shadow: .28rem 0 color-mix(in oklab, var(--trophy-color) 38%, transparent); }
+.bounty-specimen-singular .bounty-specimen-mark { padding: .15rem .3rem; border: 1px double currentColor; }
+.bounty-specimen-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .65rem; padding: .8rem; }
+.bounty-specimen-record { display: flex; min-width: 0; align-items: center; gap: .65rem; padding: .55rem; border: 1px solid var(--color-base-300); background: color-mix(in oklab, var(--color-base-100) 91%, transparent); }
+.bounty-specimen-record:hover { border-color: var(--trophy-color); }
+.bounty-specimen-record .specimen-sigil-compact { width: 3.25rem; height: 3.25rem; flex: 0 0 auto; }
+.bounty-specimen-record > span { min-width: 0; }
+.bounty-specimen-record em, .bounty-specimen-record strong, .bounty-specimen-record small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bounty-specimen-record em { margin-bottom: .12rem; color: var(--trophy-color); font-size: .48rem; font-style: normal; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.bounty-specimen-record strong { font-size: .7rem; }
+.bounty-specimen-record small { margin-top: .18rem; color: color-mix(in oklab, currentColor 48%, transparent); font-size: .55rem; text-transform: capitalize; }
+.bounty-specimen-note { padding: 0 .85rem .8rem; color: color-mix(in oklab, currentColor 48%, transparent); font-size: .6rem; line-height: 1.5; }
+.bounty-specimen-frequency { padding: 0 .85rem .65rem; color: var(--trophy-color); font-size: .62rem; font-weight: 800; }
+.bounty-specimen-compact { margin-top: .7rem; }
+.bounty-specimen-compact > header { padding: .55rem .7rem; }
+.bounty-specimen-compact .bounty-specimen-list { display: flex; flex-wrap: wrap; padding: .6rem; }
+.bounty-specimen-compact .bounty-specimen-record { flex: 1 1 12rem; padding: .4rem; }
+.bounty-specimen-compact .bounty-specimen-record .specimen-sigil-compact { width: 2.35rem; height: 2.35rem; }
+
+@media (max-width: 560px) {
+  .bounty-specimen-list { grid-template-columns: 1fr; }
+}
+
 .specimen-collection-shell { background-image: linear-gradient(90deg, color-mix(in oklab, var(--color-base-content) 3%, transparent) 1px, transparent 1px), linear-gradient(color-mix(in oklab, var(--color-base-content) 3%, transparent) 1px, transparent 1px); background-size: 2rem 2rem; }
 .specimen-collection-page { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: clamp(2rem, 6vw, 5rem) 0 6rem; }
 .specimen-collection-hero { display: flex; align-items: end; justify-content: space-between; gap: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--color-base-300); }
