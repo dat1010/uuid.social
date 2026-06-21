@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Avatar } from "./Avatar";
+import { parseRecordText } from "../services/record-text";
 
 export type RecordCardData = {
   id: string;
@@ -35,7 +36,7 @@ export function RecordCard({ record, className = "" }: RecordCardProps) {
         </div>
       </div>
       <p className="text-sm leading-relaxed whitespace-pre-wrap">
-        {record.body}
+        <RecordBody value={record.body} />
       </p>
       <Link
         className="link link-hover mt-4 inline-block text-xs text-base-content/60"
@@ -54,6 +55,24 @@ export function RecordCard({ record, className = "" }: RecordCardProps) {
         </Link>
       </p>
     </article>
+  );
+}
+
+function RecordBody({ value }: { value: string }) {
+  return parseRecordText(value).map((part, index) =>
+    part.type === "link" ? (
+      <a
+        className="link link-primary break-words"
+        href={part.href}
+        key={`${index}-${part.href}`}
+        rel="nofollow noopener noreferrer ugc"
+        target="_blank"
+      >
+        {part.value}
+      </a>
+    ) : (
+      <span key={index}>{part.value}</span>
+    ),
   );
 }
 
