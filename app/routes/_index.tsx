@@ -58,8 +58,8 @@ export default function Landing() {
             Your account is one very unlikely number.
           </h1>
           <p className="text-base-content/70 text-lg leading-relaxed mb-8 max-w-xl mx-auto">
-            Create an account and we&apos;ll generate your login UUID. Save it —
-            it&apos;s the only way back in.
+            Create an account and we&apos;ll generate your login UUID. It&apos;s your
+            identity, your login, and the only way back in. Save it.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -71,17 +71,16 @@ export default function Landing() {
             </a>
           </div>
 
-          <aside className="landing-dare" aria-label="UUID guessing challenge">
-            <strong>guess someone else&apos;s login uuid. you won&apos;t.</strong>
+          <aside className="landing-uuid-fact" aria-label="About UUID security">
+            <p className="font-semibold">
+              We don&apos;t want your personal data. We want UUIDs.
+            </p>
+            <p className="mt-3">
+              A UUIDv4 has 122 random bits: about 5.3 undecillion possible
+              login keys. We store only a hash of yours and never show it
+              again. Lose it and you start over.
+            </p>
           </aside>
-
-          <p className="mt-12 font-semibold">
-            We don&apos;t want your personal data. We want UUIDs.
-          </p>
-          <p className="mt-3 text-sm text-base-content/40 max-w-md mx-auto leading-relaxed">
-            Your UUID is your only login key. We store it as a hash and never
-            show it again. Lose it and you start over.
-          </p>
         </div>
       </main>
     </div>
