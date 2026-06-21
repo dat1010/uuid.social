@@ -176,7 +176,7 @@ async function resolveClaim(db: D1Database, registry: RegistryRow): Promise<Publ
 }
 
 async function resolveConnection(db: D1Database, registry: RegistryRow): Promise<PublicObject> {
-  const row = await db.prepare(`SELECT relationship, deleted_at, u.username FROM connections c
+  const row = await db.prepare(`SELECT c.relationship, c.deleted_at, u.username FROM connections c
     LEFT JOIN users u ON u.id = c.creator_user_id WHERE c.id = ?`)
     .bind(registry.id).first<{ relationship: Relationship; deleted_at: number | null; username: string | null }>();
   const deleted = Boolean(row?.deleted_at);
