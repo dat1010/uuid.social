@@ -55,7 +55,7 @@ export default function SocialGraphPage({ loaderData }: Route.ComponentProps) {
         {social.graph.truncated && <div className="alert mb-4 text-sm"><span>The canvas shows the 50 newest relationships in each direction. Use the lists below to browse every relation.</span></div>}
         <div className="graph-workspace graph-workspace-static">
           <section aria-label={`Social graph for @${center.username}`} className="graph-canvas">
-            <ReactFlow nodes={flow.nodes} edges={flow.edges} fitView fitViewOptions={{ padding: 0.2 }} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} deleteKeyCode={null} minZoom={0.15} maxZoom={1.4} zoomOnDoubleClick={false}>
+            <ReactFlow nodes={flow.nodes} edges={flow.edges} fitView fitViewOptions={{ padding: 0.2 }} nodesDraggable={false} nodesConnectable={false} deleteKeyCode={null} minZoom={0.15} maxZoom={1.4} zoomOnDoubleClick={false}>
               <Background gap={28} size={1} />
             </ReactFlow>
           </section>

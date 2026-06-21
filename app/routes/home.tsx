@@ -128,6 +128,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
         </div>
         <div className="navbar-end gap-1">
           {currentUser.isAdmin && <a className="btn btn-warning btn-sm" href="/admin">Control</a>}
+          <a className="btn btn-ghost btn-sm" href="/specimens">Specimens</a>
           <a className="btn btn-ghost btn-sm" href="/bounties">Bounties</a>
           <ThemeToggle />
           <Form action="/logout" method="post">

@@ -72,6 +72,52 @@
   .specimen-reveal *, .specimen-reveal { animation: none !important; transition: none !important; }
 }
 
+.specimen-collection-shell { background-image: linear-gradient(90deg, color-mix(in oklab, var(--color-base-content) 3%, transparent) 1px, transparent 1px), linear-gradient(color-mix(in oklab, var(--color-base-content) 3%, transparent) 1px, transparent 1px); background-size: 2rem 2rem; }
+.specimen-collection-page { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: clamp(2rem, 6vw, 5rem) 0 6rem; }
+.specimen-collection-hero { display: flex; align-items: end; justify-content: space-between; gap: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--color-base-300); }
+.specimen-collection-hero > div > p { color: var(--color-primary); font-size: .65rem; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+.specimen-collection-hero h1 { margin-top: .3rem; font-size: clamp(3rem, 9vw, 6.5rem); font-weight: 800; letter-spacing: -.07em; line-height: .85; }
+.specimen-collection-hero > div > span { display: block; max-width: 42rem; margin-top: 1.25rem; color: color-mix(in oklab, currentColor 58%, transparent); font-size: .75rem; line-height: 1.6; }
+.specimen-collection-hero > strong { font-size: 3rem; line-height: .8; text-align: right; }
+.specimen-collection-hero > strong small { display: block; margin-top: .7rem; color: color-mix(in oklab, currentColor 45%, transparent); font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; }
+.specimen-collection-counts { display: grid; grid-template-columns: repeat(5, 1fr); margin: 1rem 0 2rem; border: 1px solid var(--color-base-300); background: var(--color-base-100); }
+.specimen-collection-counts > div { --class-color: #687078; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .75rem 1rem; border-right: 1px solid var(--color-base-300); }
+.specimen-collection-counts > div:last-child { border: 0; }
+.specimen-collection-counts span { color: var(--class-color); font-size: .58rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.specimen-collection-counts strong { font-size: 1.1rem; }
+.specimen-collection-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.specimen-collection-card { --class-color: #687078; position: relative; display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid var(--color-base-300); border-top: .28rem solid var(--class-color); background: var(--color-base-100); box-shadow: 0 10px 30px color-mix(in oklab, #000 7%, transparent); transition: transform .18s ease, box-shadow .18s ease; }
+.specimen-collection-card:hover { transform: translateY(-.2rem); box-shadow: 0 17px 38px color-mix(in oklab, #000 13%, transparent); }
+.specimen-collection-index { position: absolute; top: .65rem; left: .7rem; z-index: 1; padding: .2rem .35rem; background: color-mix(in oklab, #000 45%, transparent); color: #fff; font-size: .55rem; font-weight: 800; letter-spacing: .08em; }
+.specimen-collection-card > .specimen-sigil { min-height: 13rem; }
+.specimen-collection-card > .specimen-sigil svg { width: min(75%, 13rem); }
+.specimen-collection-card-body { display: flex; flex: 1; flex-direction: column; padding: 1rem; }
+.specimen-collection-labels { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.specimen-collection-labels span, .specimen-collection-labels strong { font-size: .58rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.specimen-collection-labels span { color: color-mix(in oklab, currentColor 43%, transparent); }
+.specimen-collection-labels strong { color: var(--class-color); }
+.specimen-collection-card h2 { margin-top: .4rem; font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; }
+.specimen-collection-uuid { margin-top: .65rem; overflow-wrap: anywhere; color: color-mix(in oklab, currentColor 45%, transparent); font-family: monospace; font-size: .6rem; line-height: 1.5; }
+.specimen-collection-trait { margin-top: auto; padding-top: 1.2rem; }
+.specimen-collection-trait span, .specimen-collection-trait small { display: block; }
+.specimen-collection-trait span { color: var(--class-color); font-size: .66rem; font-weight: 800; }
+.specimen-collection-trait small { margin-top: .2rem; color: color-mix(in oklab, currentColor 47%, transparent); font-size: .58rem; }
+.specimen-collection-card footer { display: flex; justify-content: flex-end; margin-top: .9rem; padding-top: .75rem; border-top: 1px solid var(--color-base-300); font-size: .56rem; }
+.specimen-collection-card footer span { color: var(--class-color); font-weight: 800; }
+.specimen-collection-empty { padding: 5rem 1rem; border: 1px dashed var(--color-base-300); background: var(--color-base-100); text-align: center; }
+.specimen-collection-empty h2 { font-size: 1.5rem; font-weight: 800; }
+.specimen-collection-empty p { margin: .5rem 0 1.2rem; color: color-mix(in oklab, currentColor 50%, transparent); font-size: .75rem; }
+
+@media (max-width: 900px) {
+  .specimen-collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .specimen-collection-counts { grid-template-columns: repeat(5, minmax(7rem, 1fr)); overflow-x: auto; }
+}
+@media (max-width: 560px) {
+  .specimen-collection-hero { align-items: start; flex-direction: column; }
+  .specimen-collection-hero > strong { text-align: left; }
+  .specimen-collection-grid { grid-template-columns: 1fr; }
+}
+
 @theme {
   --font-sans: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }

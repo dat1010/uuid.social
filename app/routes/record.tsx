@@ -224,6 +224,7 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
         </div>
         <div className="navbar-end gap-2">
           <ThemeToggle />
+          {currentUser && <Link className="btn btn-ghost btn-sm" to="/specimens">Specimens</Link>}
           <Link className="btn btn-ghost btn-sm" to="/bounties">Bounties</Link>
           {currentUser ? (
             <>
