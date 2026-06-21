@@ -1,5 +1,5 @@
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
-import { data, Form, useNavigation } from "react-router";
+import { data, Form, redirect, useNavigation } from "react-router";
 import { RecordCard } from "../components/RecordCard";
 import { Avatar } from "../components/Avatar";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -102,14 +102,15 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const env = getCloudflareEnv(context);
   const db = createDb(env.DB);
+  const recordId = crypto.randomUUID();
   await db.insert(recordsTable).values({
-    id: crypto.randomUUID(),
+    id: recordId,
     userId: currentUser.id,
     body,
     createdAt: new Date(),
   });
 
-  return data({ error: null });
+  return redirect(`/record/${recordId}?reveal=1`);
 }
 
 export default function Home({ loaderData, actionData }: Route.ComponentProps) {

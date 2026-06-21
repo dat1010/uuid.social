@@ -1,8 +1,10 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
-import { data, Form, Link, redirect, useNavigation } from "react-router";
+import { useEffect } from "react";
+import { data, Form, Link, redirect, useNavigation, useSearchParams } from "react-router";
 
 import type { Route } from "./+types/record";
 import { RecordCard } from "../components/RecordCard";
+import { RecordSpecimen } from "../components/RecordSpecimen";
 import { ConnectionsPanel } from "../components/ConnectionsPanel";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { createDb } from "../db/client.server";
@@ -96,6 +98,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     isOwner: !deleted && currentUser?.id === userId,
     canDelete: !deleted && Boolean(currentUser && (currentUser.id === userId || currentUser.isAdmin)),
     isReply: parentRecordId !== null,
+    parentRecordId,
     deleted,
     deletionOrigin,
     connections,
@@ -179,17 +182,20 @@ export async function action({ request, context, params }: Route.ActionArgs) {
     );
   }
 
+  const replyId = crypto.randomUUID();
   await createReply(env.DB, {
-    id: crypto.randomUUID(), userId: currentUser.id,
+    id: replyId, userId: currentUser.id,
     parentId: targetRecord.id, body, createdAt: Date.now(),
   });
 
-  return redirect(`/record/${uuid}`);
+  return redirect(`/record/${replyId}?reveal=1`);
 }
 
 export default function Record({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
-  const { currentUser, canDelete, isReply, deleted, deletionOrigin, record, replies, connections } = loaderData;
+  const { currentUser, canDelete, isReply, parentRecordId, deleted, deletionOrigin, record, replies, connections } = loaderData;
+  const [searchParams] = useSearchParams();
+  const reveal = searchParams.get("reveal") === "1";
   const homeUrl = currentUser ? "/home" : "/";
   const isReplying =
     navigation.state === "submitting" &&
@@ -197,6 +203,13 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
   const isDeleting =
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "delete";
+
+  useEffect(() => {
+    if (!reveal) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("reveal");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [reveal]);
 
   return (
     <div className="min-h-screen bg-base-200">
@@ -236,9 +249,9 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 lg:px-8">
-        <div className={`card bg-base-100 shadow mb-4 ${deleted ? "border border-dashed border-base-content/30" : ""}`}>
-          {deleted ? <div className="card-body"><span className="badge badge-outline w-fit">Deleted record</span><h1 className="text-2xl font-bold">Deleted record</h1><p className="font-mono text-xs text-base-content/45 break-all">{record.id}</p><p className="text-sm text-base-content/55">{deletionOrigin === "admin" ? "This record was removed by an administrator." : "This record was deleted by its author."}</p></div> : <RecordCard record={record} />}
+      <main className="max-w-5xl mx-auto px-4 py-6 lg:px-8">
+        <div className="card bg-base-100 shadow mb-4 overflow-hidden">
+          <RecordSpecimen record={record} deleted={deleted} deletionOrigin={deletionOrigin} parentRecordId={parentRecordId} reveal={reveal} />
           {canDelete && (
             <div className="px-4 pb-4 flex justify-end">
               <Form method="post">
@@ -258,6 +271,7 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
           )}
         </div>
 
+        <div className="record-thread-column">
         {!deleted && <div className="card bg-base-100 shadow mb-4">
           <div className="card-body p-4">
             {currentUser ? (
@@ -322,6 +336,7 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
           )}
         </div>
         <ConnectionsPanel objectId={record.id} connections={connections} />
+        </div>
       </main>
     </div>
   );

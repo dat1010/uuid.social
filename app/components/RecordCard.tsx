@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Avatar } from "./Avatar";
 import { parseRecordText } from "../services/record-text";
+import { generateRecordIdentity } from "../services/record-identity";
+import { SpecimenSigil } from "./SpecimenSigil";
 
 export type RecordCardData = {
   id: string;
@@ -20,8 +22,13 @@ type RecordCardProps = {
 };
 
 export function RecordCard({ record, className = "" }: RecordCardProps) {
+  const identity = generateRecordIdentity(record.id);
   return (
     <article className={`p-4 ${className}`}>
+      <Link className="specimen-compact" to={`/record/${record.id}`} aria-label={`${identity.name}, ${identity.classification} specimen`}>
+        <SpecimenSigil identity={identity} size="compact" />
+        <span><strong>{identity.name}</strong><small>{identity.classification}</small></span>
+      </Link>
       <div className="flex items-center gap-3 mb-3">
         <Link to={`/user/${record.username}`} aria-label={`${record.displayName}'s profile`}>
           <Avatar {...record} size="sm" />
@@ -58,7 +65,7 @@ export function RecordCard({ record, className = "" }: RecordCardProps) {
   );
 }
 
-function RecordBody({ value }: { value: string }) {
+export function RecordBody({ value }: { value: string }) {
   return parseRecordText(value).map((part, index) =>
     part.type === "link" ? (
       <a
