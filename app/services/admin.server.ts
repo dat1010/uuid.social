@@ -209,3 +209,15 @@ export async function deleteUserRecord(
     .bind(Date.now(), recordId, targetUsername).run();
   return result.meta.changes === 1 ? null : "That active record was not found.";
 }
+
+export async function releaseUserRecord(
+  db: D1Database,
+  targetUsername: string,
+  recordId: string,
+) {
+  const result = await db.prepare(`UPDATE records SET deleted_at = NULL, deletion_origin = NULL
+    WHERE id = ? AND user_id = (SELECT id FROM users WHERE username = ?)
+      AND deleted_at IS NOT NULL AND deletion_origin = 'admin'`)
+    .bind(recordId, targetUsername).run();
+  return result.meta.changes === 1 ? null : "That moderated record was not found.";
+}
