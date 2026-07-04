@@ -7,6 +7,7 @@ import {
   objectUrl,
   relationshipLabels,
   shortUuid,
+  truncateUuid,
 } from "./connections";
 
 describe("public identity boundaries", () => {
@@ -47,6 +48,18 @@ describe("connection presentation rules", () => {
     expect(relationshipLabels.USES_RECORD).toBe("uses record");
   });
 
+
+  it("truncates canonical lowercase UUIDv4 values", () => {
+    expect(truncateUuid("12345678-1234-4abc-8def-123456789abc")).toBe("12345678");
+  });
+
+  it("throws TypeError for non-UUID values", () => {
+    expect(() => truncateUuid("not-a-uuid")).toThrow(TypeError);
+  });
+
+  it("throws TypeError for empty UUID values", () => {
+    expect(() => truncateUuid("")).toThrow(TypeError);
+  });
   it("qualifies connection columns when resolving joined users", async () => {
     const queries: string[] = [];
     const db = {

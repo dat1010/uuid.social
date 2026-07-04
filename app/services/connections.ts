@@ -58,6 +58,16 @@ export function isManualRelationship(value: string): value is ManualRelationship
   return manualRelationships.includes(value as ManualRelationship);
 }
 
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+export function truncateUuid(id: string) {
+  if (typeof id !== "string" || !UUID_V4.test(id)) {
+    throw new TypeError("truncateUuid requires a canonical lowercase UUIDv4.");
+  }
+
+  return id.slice(0, 8);
+}
+
 export function shortUuid(id: string) {
   return `${id.slice(0, 5)}...${id.slice(-4)}`;
 }
