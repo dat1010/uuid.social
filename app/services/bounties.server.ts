@@ -21,7 +21,7 @@ const dailyCandidates: DailyCandidate[] = [
     [4, 3, 5, 2].map((targetValue) => ({ character, targetValue })),
   ),
 ];
-const weeklyGaps = [1000, 500, 100, 50, 10];
+const weeklyGaps = [1000, 500, 250, 100, 50, 25, 10, 5];
 
 export async function ensureCurrentBounties(db: D1Database, now = new Date()) {
   await Promise.all([
@@ -91,7 +91,7 @@ async function findDailyCandidate(db: D1Database, startsAt: Date) {
 }
 
 async function findWeeklyCandidate(db: D1Database, startsAt: Date) {
-  const ordered = rotate(weeklyGaps, periodSeed(startsAt));
+  const ordered = rotate(weeklyGaps, weeklyPeriodSeed(startsAt));
 
   for (const targetValue of ordered) {
     const pair = await db
@@ -124,6 +124,10 @@ async function findWeeklyCandidate(db: D1Database, startsAt: Date) {
 
 function periodSeed(date: Date) {
   return Math.floor(date.getTime() / 86_400_000);
+}
+
+function weeklyPeriodSeed(startsAt: Date) {
+  return Math.floor(startsAt.getTime() / 604_800_000);
 }
 
 function rotate<T>(values: T[], seed: number) {
