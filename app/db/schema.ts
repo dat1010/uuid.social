@@ -55,6 +55,32 @@ export const records = sqliteTable(
   ],
 );
 
+export const recordAttachments = sqliteTable("record_attachments", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  recordId: text("record_id").references(() => records.id),
+  status: text("status", { enum: ["uploading", "ready", "attached", "deleting", "deleted"] }).notNull(),
+  feedKey: text("feed_key").notNull().unique(),
+  fullKey: text("full_key").notNull().unique(),
+  width: integer("width"),
+  height: integer("height"),
+  byteSize: integer("byte_size"),
+  contentType: text("content_type").notNull().default("image/webp"),
+  position: integer("position").notNull().default(0),
+  altText: text("alt_text").notNull().default(""),
+  createdAt: integer("created_at").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+}, (table) => [
+  index("record_attachments_record_idx").on(table.recordId, table.position),
+  index("record_attachments_user_created_idx").on(table.userId, table.createdAt),
+  index("record_attachments_created_idx").on(table.createdAt),
+  index("record_attachments_cleanup_idx").on(table.status, table.expiresAt),
+  uniqueIndex("record_attachments_position_idx").on(table.recordId, table.position),
+  check("record_attachments_position_check", sql`${table.position} BETWEEN 0 AND 3`),
+  check("record_attachments_alt_check", sql`length(${table.altText}) <= 500`),
+  check("record_attachments_attached_check", sql`${table.status} <> 'attached' OR ${table.recordId} IS NOT NULL`),
+]);
+
 export const bounties = sqliteTable(
   "bounties",
   {

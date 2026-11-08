@@ -58,7 +58,7 @@ export async function claimBounty(db: D1Database, input: {
     statements.push(systemConnectionFromClaim(db, crypto.randomUUID(), claimId, "record_id_b", "USES_RECORD", input.now));
   }
   const [claimResult] = await db.batch(statements);
-  if (claimResult.meta.changes !== 1) return "Someone else claimed this bounty first.";
+  if (claimResult.meta.changes < 1) return "Someone else claimed this bounty first.";
   return null;
 }
 

@@ -17,6 +17,7 @@ UUID, shown once during signup. Losing it means losing access to that account.
 - D1-backed records associated with authenticated users
 - Public record UUID permalinks
 - UUID-addressed replies and record threads
+- Up to four images per record or reply, with alt text and full-size viewing
 - Immutable records that authors can soft-delete
 - Filterable, paginated specimen collections with a featured specimen on profiles
 - Historical bounty archives and preserved winner trophies
@@ -24,7 +25,8 @@ UUID, shown once during signup. Losing it means losing access to that account.
 - Automatic production deploys from `main`
 
 Usernames are normalized to lowercase and must contain 3-24 letters, numbers,
-underscores, or hyphens. Records and replies are limited to 500 characters.
+underscores, or hyphens. Records and replies support up to 500 characters and four images; text is optional
+when an image is attached.
 Profiles support an 80-character status, a 500-character bio, and JPEG, PNG, or
 WebP avatars up to 2 MB.
 
@@ -59,7 +61,9 @@ There is intentionally no account-recovery mechanism.
 - Terraform
 - GitHub Actions
 
-Profile images are stored in Cloudflare R2, while profile metadata lives in D1.
+Profile images and record images are stored in separate private Cloudflare R2
+buckets. D1 stores metadata. Record images are processed once using the Cloudflare
+Images binding, then served from R2 through the application.
 
 ## Local Development
 
@@ -221,3 +225,52 @@ Specimen pages return at most 24 identities. Global rarity ordering, filters, an
 counts currently read the owner's active record IDs and derive each identity once
 per request. Persisting indexed specimen metadata is a future scaling option if
 collections grow enough to make that scan expensive.
+
+## Record images
+
+Before deploying this feature, create the private `uuid-social-media` R2 bucket
+(the Terraform resource is `cloudflare_r2_bucket.media`) and enable Cloudflare
+Images Paid for the account. The existing avatar bucket is unchanged. Do not enable
+public bucket access or an `r2.dev` URL. The deployment token must be able to deploy
+Workers with the R2 and Images bindings. Migration `0010_add_record_images.sql`
+is applied by the deployment workflow before the Worker is deployed.
+
+Uploads accept JPEG, PNG, and WebP, up to 10 MiB and 50 million pixels per image.
+The server validates signatures and decodes the image. Images are re-encoded as
+static WebP at 800px and 2048px maximum edge lengths, with aspect ratio and
+transparency preserved. Source orientation is applied and source metadata is
+removed by the encoder. Original files are not retained. Animated files become
+still images. HEIC, GIF, SVG, and video uploads are not supported.
+
+Limits are configured in `wrangler.jsonc`: 20 upload attempts per account per UTC
+day, 8 pending uploads per account, and 500 attempts globally per UTC day. Failed
+and discarded uploads count toward daily quotas because processing may have
+incurred cost. Reservations are made atomically before processing. Set the global
+limit to `0` to stop new uploads while leaving existing media readable.
+
+Ready uploads expire after 24 hours unless published. A record and its attachments
+are published in one D1 batch. Each image belongs to its uploader and can be used
+once. Attachment order and descriptions are immutable after publication.
+
+Media routes check record visibility on every request, including ETag requests.
+Unpublished uploads are never exposed through media routes. Browsers must
+revalidate cached images; no public cache is placed in front of these routes.
+Author deletion immediately hides and queues the images for physical deletion.
+Moderated records hide their images from the public but retain them for 30 days
+so admins can review and restore them. After cleanup, releasing an old moderated
+record restores its text only. Account deactivation retains public history,
+including images, consistent with the existing account deletion behavior.
+
+The hourly Worker scheduled handler processes up to 100 image removals per run,
+retrying failed R2 deletions. It cleans up abandoned uploads and author-deleted
+images, and removes moderated images after their retention period. Daily quota
+reservations remain through the accounting window. Existing downloads and copies
+already saved by viewers cannot be revoked.
+
+Local development uses local D1/R2 and the local Images implementation. Run
+`npm run db:migrate:local` before testing. Cloudflare documents differences between
+local and production image processing. The installed local encoder ignores EXIF
+orientation and uses padded resizing instead of `scale-down`. Local HTTP checks
+verify uploads, transparency, metadata removal, and access control; verify
+orientation and resize geometry against the production Images service before enabling uploads
+for everyone. No account credentials should be placed in source files.

@@ -1,3 +1,4 @@
+import { cleanupImages } from "../app/services/media.server";
 import { createRequestHandler } from "react-router";
 
 const requestHandler = createRequestHandler(
@@ -6,6 +7,9 @@ const requestHandler = createRequestHandler(
 );
 
 export default {
+  async scheduled(_event, env) {
+    await cleanupImages(env.DB, env.MEDIA);
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 

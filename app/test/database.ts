@@ -16,7 +16,13 @@ export function createTestDatabase() {
       bind(...values: SQLInputValue[]) { bindings = values; return this; },
       async first() { return statement.get(...bindings) ?? null; },
       async all() { return { results: statement.all(...bindings) }; },
-      async run() { return { meta: { changes: Number(statement.run(...bindings).changes) } }; },
+      async run() {
+        // D1 includes changes made by triggers, unlike StatementSync.run().changes.
+        const before = Number(sqlite.prepare("SELECT total_changes() AS total").get()!.total);
+        statement.run(...bindings);
+        const after = Number(sqlite.prepare("SELECT total_changes() AS total").get()!.total);
+        return { meta: { changes: after - before } };
+      },
     };
   }
   const db = {

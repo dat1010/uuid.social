@@ -80,3 +80,22 @@ CLOUDFLARE_API_TOKEN=<token from Cloudflare>
 Create the Cloudflare API token from the Cloudflare dashboard. It needs enough
 access to deploy Workers and apply D1 migrations. Keep it scoped to this
 account and the `uuid.social` zone where possible.
+
+## Record image prerequisites
+
+The record attachment feature requires the private R2 bucket
+`uuid-social-media`, declared as `cloudflare_r2_bucket.media` in Terraform, and
+Cloudflare Images Paid enabled on the hosting account. Review the Terraform plan
+and provision the bucket before deploying the Worker. Keep public access disabled.
+Wrangler declares the `MEDIA` and `IMAGES` bindings and an hourly cleanup trigger.
+
+Apply `0010_add_record_images.sql` before deploying this Worker version (GitHub
+Actions already runs pending migrations). The migration is additive and does not
+change existing records or avatars. No separate S3 access keys are needed: the
+Worker accesses the private bucket through its R2 binding.
+
+See the README's Record images section for limits, retention, and testing. The
+read-only media route must not be overridden by a Cache Everything rule: visibility
+must be checked before every response, including conditional requests.
+
+Reference: https://developers.cloudflare.com/images/tutorials/optimize-user-uploaded-image/

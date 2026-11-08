@@ -1,3 +1,5 @@
+import { getRecordImages } from "./media.server";
+
 const pageSize = 30;
 
 type FeedRecord = {
@@ -31,6 +33,7 @@ export async function getFeed(db: D1Database, userId: string, url: URL) {
     .bind(query, view, userId, query, query, query, query, pageSize + 1, (page - 1) * pageSize)
     .all<FeedRecord>();
 
+  const images = await getRecordImages(db, result.results.slice(0, pageSize).map(({ id }) => id));
   return {
     view,
     query,
@@ -38,6 +41,7 @@ export async function getFeed(db: D1Database, userId: string, url: URL) {
     hasNextPage: result.results.length > pageSize,
     records: result.results.slice(0, pageSize).map((record) => ({
       id: record.id,
+      images: images[record.id] ?? [],
       username: record.username,
       displayName: record.display_name || record.username,
       hasAvatar: Boolean(record.avatar_key),

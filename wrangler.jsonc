@@ -18,7 +18,10 @@
 		}
 	],
 	"vars": {
-		"APP_ENV": "local"
+		"APP_ENV": "local",
+		"MEDIA_DAILY_USER_LIMIT": "20",
+		"MEDIA_PENDING_LIMIT": "8",
+		"MEDIA_DAILY_GLOBAL_LIMIT": "500"
 	},
 	"d1_databases": [
 		{
@@ -31,8 +34,11 @@
 		{
 			"binding": "AVATARS",
 			"bucket_name": "uuid-social-avatars"
-		}
+		},
+		{ "binding": "MEDIA", "bucket_name": "uuid-social-media" }
 	],
+	"images": { "binding": "IMAGES" },
+	"triggers": { "crons": ["17 * * * *"] },
 	"observability": {
 		"enabled": true
 	},

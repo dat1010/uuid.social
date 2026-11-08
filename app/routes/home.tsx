@@ -1,11 +1,12 @@
-import { data, Form, Link, redirect, useNavigation } from "react-router";
+import { data, Form, Link, redirect } from "react-router";
+import { RecordComposer } from "../components/RecordComposer";
+import { parseRecordInput } from "../services/media";
+import { publishRecord } from "../services/publish-record.server";
 import { RecordCard } from "../components/RecordCard";
 import { Avatar } from "../components/Avatar";
 import { ThemeToggle } from "../components/ThemeToggle";
 
 import type { Route } from "./+types/home";
-import { createDb } from "../db/client.server";
-import { records as recordsTable } from "../db/schema";
 import { requireUser, toPublicCurrentUser } from "../services/auth.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 import { getFeed } from "../services/feed.server";
@@ -36,32 +37,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const currentUser = await requireUser(request, context);
   const formData = await request.formData();
-  const body = String(formData.get("body") ?? "").trim();
-
-  if (!body || body.length > 500) {
-    return data(
-      { error: "Records must contain between 1 and 500 characters." },
-      { status: 400 },
-    );
-  }
-
-  const env = getCloudflareEnv(context);
-  const db = createDb(env.DB);
-  const recordId = crypto.randomUUID();
-  await db.insert(recordsTable).values({
-    id: recordId,
-    userId: currentUser.id,
-    body,
-    createdAt: new Date(),
-  });
-
-  return redirect(`/record/${recordId}?reveal=1`);
+  const input = parseRecordInput(formData);
+  if ("error" in input) return data({ error: input.error }, { status: 400 });
+  const result = await publishRecord(getCloudflareEnv(context).DB, { userId: currentUser.id, ...input });
+  if ("error" in result) return data({ error: result.error }, { status: 400 });
+  return redirect(`/record/${result.id}?reveal=1`);
 }
 
 export default function Home({ loaderData, actionData }: Route.ComponentProps) {
-  const navigation = useNavigation();
   const { currentUser, records, view, query, page, hasNextPage } = loaderData;
-  const isPublishing = navigation.state === "submitting" && navigation.formMethod === "POST";
   const feedLink = (nextView = view, nextPage = 1) =>
     `/home?${new URLSearchParams({ view: nextView, q: query, page: String(nextPage) })}`;
 
@@ -137,34 +121,7 @@ export default function Home({ loaderData, actionData }: Route.ComponentProps) {
             {/* Composer */}
             <div className="card bg-base-100 shadow">
               <div className="card-body p-4">
-                <Form
-                  className="flex flex-col gap-3"
-                  method="post"
-                  action="/home"
-                  key={isPublishing ? "publishing" : "idle"}
-                >
-                  <textarea
-                    className="textarea textarea-bordered w-full min-h-24 resize-none"
-                    maxLength={500}
-                    name="body"
-                    placeholder="What is happening in this UUID lifetime?"
-                    required
-                  />
-                  {actionData?.error && (
-                    <div role="alert" className="alert alert-error text-sm py-2">
-                      <span>{actionData.error}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-base-content/30">max 500 chars</span>
-                    <button
-                      className="btn btn-primary btn-sm"
-                      disabled={isPublishing}
-                    >
-                      {isPublishing ? "Publishing..." : "Publish"}
-                    </button>
-                  </div>
-                </Form>
+                <RecordComposer action="/home" serverError={actionData?.error} />
               </div>
             </div>
 

@@ -1,3 +1,4 @@
+import { getRecordImages } from "../services/media.server";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
@@ -71,6 +72,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
       claim_id: string; bounty_id: string; record_id_a: string; record_id_b: string | null;
     }>(), getSocialSummary(env.DB, profile.id, currentUser?.id ?? null), getFeaturedSpecimen(env.DB, profile.id)]);
 
+  const images = await getRecordImages(env.DB, profileRecords.map(({ id }) => id));
   return {
     currentUser: toPublicCurrentUser(currentUser),
     isOwner: currentUser?.id === profile.id,
@@ -101,6 +103,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     featuredSpecimen,
     records: profileRecords.map((record) => ({
       ...record,
+      images: images[record.id] ?? [],
       displayName: record.displayName || record.username,
       hasAvatar: Boolean(record.avatarKey),
       createdAt: record.createdAt.toISOString(),

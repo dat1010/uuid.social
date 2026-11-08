@@ -269,3 +269,28 @@
 .specimen-collection-entry { display: flex; min-width: 0; flex-direction: column; }
 .specimen-collection-entry > .specimen-collection-card { flex: 1; }
 .specimen-feature-action { padding: .75rem; border: 1px solid var(--color-base-300); border-top: 0; background: var(--color-base-100); }
+
+.record-composer { display: grid; gap: .85rem; }
+.composer-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; }
+.composer-toolbar label:focus-within { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.composer-images { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.composer-image { min-width: 0; padding: .65rem; border: 1px solid var(--color-base-300); border-radius: .5rem; background: var(--color-base-200); }
+.composer-image > img { width: 100%; height: 10rem; object-fit: contain; background: var(--color-base-100); border-radius: .25rem; }
+.composer-image-controls { display: flex; align-items: center; gap: .25rem; margin: .4rem 0; }
+.composer-alt { display: block; margin-top: .5rem; font-size: .65rem; font-weight: 700; }
+.composer-alt > span { font-weight: 400; opacity: .6; }
+.composer-alt textarea { margin-top: .3rem; font-size: .75rem; }
+.composer-progress { display: grid; gap: .25rem; font-size: .65rem; }
+.record-images { margin-top: 1rem; }
+.record-image-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; overflow: hidden; border-radius: .5rem; }
+.record-image-grid > button { min-width: 0; cursor: zoom-in; background: var(--color-base-200); }
+.record-image-grid > button:focus-visible { outline: 3px solid var(--color-primary); outline-offset: -3px; }
+.record-image-grid img { width: 100%; height: 100%; max-height: 23rem; aspect-ratio: 1; object-fit: cover; }
+.record-image-single { grid-template-columns: 1fr; }
+.record-image-single img { aspect-ratio: auto; max-height: 32rem; object-fit: contain; }
+.image-viewer { position: fixed; inset: 0; margin: auto; width: min(96vw, 1100px); max-width: 96vw; max-height: 95dvh; overflow: auto; padding: 1rem; border: 1px solid var(--color-base-300); border-radius: .5rem; background: var(--color-base-100); color: var(--color-base-content); }
+.image-viewer::backdrop { background: rgb(0 0 0 / .85); }
+.image-viewer-content > img { display: block; max-width: 100%; width: auto; height: auto; max-height: 70dvh; margin: auto; object-fit: contain; }
+.image-viewer-content > p { margin-top: .75rem; font-size: .85rem; overflow-wrap: anywhere; }
+.image-viewer-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .5rem 0; font-size: .75rem; }
+@media (max-width: 480px) { .composer-images { grid-template-columns: 1fr; } }

@@ -1,3 +1,5 @@
+import { ImageGallery } from "./ImageGallery";
+import type { RecordImage } from "../services/media";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Avatar } from "./Avatar";
@@ -14,6 +16,7 @@ export type RecordCardData = {
   eventNumber: number | null;
   createdAt: string;
   replyCount: number;
+  images?: RecordImage[];
 };
 
 type RecordCardProps = {
@@ -46,6 +49,7 @@ export function RecordCard({ record, className = "", showSpecimenIdentity = true
       <p className="text-sm leading-relaxed whitespace-pre-wrap">
         <RecordBody value={record.body} />
       </p>
+      <ImageGallery images={record.images} />
       <Link
         className="link link-hover mt-4 inline-block text-xs text-base-content/60"
         to={`/record/${record.id}`}

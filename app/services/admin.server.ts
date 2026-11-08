@@ -1,3 +1,4 @@
+import { getRecordImages } from "./media.server";
 import {
   adminRecordPageSize,
   adminUserPageSize,
@@ -116,6 +117,7 @@ export async function getAdminUser(
       reply_count: number;
     }>();
 
+  const images = await getRecordImages(db, recordResult.results.slice(0, adminRecordPageSize).map(({ id }) => id), true);
   return {
     user: {
       username: row.username,
@@ -130,6 +132,7 @@ export async function getAdminUser(
     },
     records: recordResult.results.slice(0, adminRecordPageSize).map((record) => ({
       id: record.id,
+      images: images[record.id] ?? [],
       body: record.body,
       createdAt: new Date(record.created_at).toISOString(),
       deleted: Boolean(record.deleted_at),

@@ -1,3 +1,4 @@
+import { ImageGallery } from "./ImageGallery";
 import { Link } from "react-router";
 
 import type { RecordCardData } from "./RecordCard";
@@ -31,6 +32,7 @@ export function RecordSpecimen({ record, deleted, deletionOrigin, parentRecordId
             <>
               <p className="specimen-author">Recorded by <Link to={`/user/${record.username}`}>{record.displayName} (@{record.username})</Link></p>
               <div className="specimen-body"><RecordBody value={record.body} /></div>
+              <ImageGallery images={record.images} />
             </>
           )}
           <p className="specimen-record-meta">

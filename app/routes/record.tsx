@@ -3,6 +3,10 @@ import { useEffect } from "react";
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from "react-router";
 
 import type { Route } from "./+types/record";
+import { RecordComposer } from "../components/RecordComposer";
+import { getRecordImages } from "../services/media.server";
+import { parseRecordInput } from "../services/media";
+import { publishRecord } from "../services/publish-record.server";
 import { RecordCard } from "../components/RecordCard";
 import { RecordSpecimen } from "../components/RecordSpecimen";
 import { ConnectionsPanel } from "../components/ConnectionsPanel";
@@ -15,7 +19,7 @@ import {
   toPublicCurrentUser,
   validateUuid,
 } from "../services/auth.server";
-import { createReply, getConnectionLists } from "../services/connections.server";
+import { getConnectionLists } from "../services/connections.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 
 export function meta({ data }: Route.MetaArgs) {
@@ -92,6 +96,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
 
   const { userId, parentRecordId, deletedAt, deletionOrigin, ...publicRecord } = record;
   const deleted = deletedAt !== null;
+  const images = await getRecordImages(env.DB, [uuid, ...replyRows.map(({ id }) => id)]);
 
   return {
     currentUser: toPublicCurrentUser(currentUser),
@@ -104,6 +109,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     connections,
     record: {
       ...publicRecord,
+      images: images[record.id] ?? [],
       username: deleted ? "" : record.username,
       displayName: deleted ? "" : record.displayName || record.username,
       hasAvatar: deleted ? false : Boolean(record.avatarKey),
@@ -113,6 +119,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     },
     replies: replyRows.map((reply) => ({
       ...reply,
+      images: images[reply.id] ?? [],
       displayName: reply.displayName || reply.username,
       hasAvatar: Boolean(reply.avatarKey),
       createdAt: reply.createdAt.toISOString(),
@@ -174,21 +181,11 @@ export async function action({ request, context, params }: Route.ActionArgs) {
     return data({ error: "Unsupported record action." }, { status: 400 });
   }
 
-  const body = String(formData.get("body") ?? "").trim();
-  if (!body || body.length > 500) {
-    return data(
-      { error: "Replies must contain between 1 and 500 characters." },
-      { status: 400 },
-    );
-  }
-
-  const replyId = crypto.randomUUID();
-  await createReply(env.DB, {
-    id: replyId, userId: currentUser.id,
-    parentId: targetRecord.id, body, createdAt: Date.now(),
-  });
-
-  return redirect(`/record/${replyId}?reveal=1`);
+  const input = parseRecordInput(formData);
+  if ("error" in input) return data({ error: input.error }, { status: 400 });
+  const result = await publishRecord(env.DB, { userId: currentUser.id, parentId: uuid, ...input });
+  if ("error" in result) return data({ error: result.error }, { status: 400 });
+  return redirect(`/record/${result.id}?reveal=1`);
 }
 
 export default function Record({ loaderData, actionData }: Route.ComponentProps) {
@@ -197,9 +194,6 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
   const [searchParams] = useSearchParams();
   const reveal = searchParams.get("reveal") === "1";
   const homeUrl = currentUser ? "/home" : "/";
-  const isReplying =
-    navigation.state === "submitting" &&
-    navigation.formData?.get("intent") === "reply";
   const isDeleting =
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "delete";
@@ -275,34 +269,7 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
         {!deleted && <div className="card bg-base-100 shadow mb-4">
           <div className="card-body p-4">
             {currentUser ? (
-              <Form
-                className="flex flex-col gap-3"
-                key={isReplying ? "replying" : "idle"}
-                method="post"
-              >
-                <input name="intent" type="hidden" value="reply" />
-                <textarea
-                  className="textarea textarea-bordered w-full min-h-24 resize-none"
-                  maxLength={500}
-                  name="body"
-                  placeholder="Reply to this record"
-                  required
-                />
-                {actionData?.error && (
-                  <div role="alert" className="alert alert-error text-sm py-2">
-                    <span>{actionData.error}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-base-content/30">max 500 chars</span>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    disabled={isReplying}
-                  >
-                    {isReplying ? "Replying..." : "Reply"}
-                  </button>
-                </div>
-              </Form>
+              <RecordComposer key={record.id} action={`/record/${record.id}`} reply serverError={actionData?.error} />
             ) : (
               <p className="text-sm text-base-content/60">
                 <Link className="link" to="/login">Sign in</Link> to reply.

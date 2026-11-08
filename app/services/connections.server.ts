@@ -129,21 +129,6 @@ export async function deleteManualConnection(db: D1Database, id: string, userId:
   return result.meta.changes === 1;
 }
 
-export async function createReply(
-  db: D1Database,
-  input: { id: string; userId: string; parentId: string; body: string; createdAt: number },
-) {
-  const connectionId = crypto.randomUUID();
-  await db.batch([
-    db.prepare(`INSERT INTO records (id, user_id, parent_record_id, body, created_at)
-      VALUES (?, ?, ?, ?, ?)`).bind(input.id, input.userId, input.parentId, input.body, input.createdAt),
-    db.prepare(`INSERT INTO connections
-      (id, source_id, target_id, relationship, origin, created_at)
-      VALUES (?, ?, ?, 'REPLIES_TO', 'system', ?)`)
-      .bind(connectionId, input.id, input.parentId, input.createdAt),
-  ]);
-}
-
 async function getConnectionById(db: D1Database, id: string) {
   const row = await db.prepare(`${connectionSelect} WHERE c.id = ? AND c.deleted_at IS NULL`)
     .bind(id).first<ConnectionRow>();
