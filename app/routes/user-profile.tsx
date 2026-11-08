@@ -4,6 +4,8 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/user-profile";
 import { Avatar } from "../components/Avatar";
 import { RecordCard } from "../components/RecordCard";
+import { SpecimenCollectionCard } from "../components/SpecimenCollectionCard";
+import { getFeaturedSpecimen } from "../services/featured-specimen.server";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { BountySpecimenTrophy } from "../components/BountySpecimenTrophy";
 import { createDb } from "../db/client.server";
@@ -42,7 +44,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
   const [profile] = profileRows;
   if (!profile) throw new Response("Not Found", { status: 404, statusText: "Not Found" });
 
-  const [profileRecords, trophyResult, social] = await Promise.all([db.select({
+  const [profileRecords, trophyResult, social, featuredSpecimen] = await Promise.all([db.select({
     id: records.id,
     username: users.username,
     displayName: users.displayName,
@@ -67,7 +69,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
       cadence: "daily" | "weekly"; rule_type: BountyRuleType; character: string | null;
       target_value: number; claimed_at: number; trophy_count: number;
       claim_id: string; bounty_id: string; record_id_a: string; record_id_b: string | null;
-    }>(), getSocialSummary(env.DB, profile.id, currentUser?.id ?? null)]);
+    }>(), getSocialSummary(env.DB, profile.id, currentUser?.id ?? null), getFeaturedSpecimen(env.DB, profile.id)]);
 
   return {
     currentUser: toPublicCurrentUser(currentUser),
@@ -96,6 +98,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
       ),
     })),
     trophyCount: trophyResult.results[0]?.trophy_count ?? 0,
+    featuredSpecimen,
     records: profileRecords.map((record) => ({
       ...record,
       displayName: record.displayName || record.username,
@@ -126,7 +129,7 @@ export async function action({ request, context, params }: Route.ActionArgs) {
 }
 
 export default function UserProfile({ loaderData, actionData }: Route.ComponentProps) {
-  const { currentUser, isOwner, profile, records, trophies, trophyCount } = loaderData;
+  const { currentUser, isOwner, profile, records, trophies, trophyCount, featuredSpecimen } = loaderData;
   const navigation = useNavigation();
   const isUpdatingFollow = navigation.state === "submitting";
   return (
@@ -135,7 +138,6 @@ export default function UserProfile({ loaderData, actionData }: Route.ComponentP
         <div className="navbar-start"><Link className="font-bold tracking-widest uppercase text-sm" to={currentUser ? "/home" : "/"}>uuid.social</Link></div>
         <div className="navbar-end gap-2">
           <ThemeToggle />
-          <Link className="btn btn-ghost btn-sm" to="/bounties">Bounties</Link>
           {currentUser ? <><Link className="btn btn-ghost btn-sm" to="/home">Home</Link><Form action="/logout" method="post"><button className="btn btn-ghost btn-sm">Logout</button></Form></> : <Link className="btn btn-primary btn-sm" to="/login">Sign in</Link>}
         </div>
       </header>
@@ -169,13 +171,17 @@ export default function UserProfile({ loaderData, actionData }: Route.ComponentP
             <p className="text-xs text-base-content/40">Joined {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</p>
           </div>
         </section>
-        <section className="card bg-base-100 shadow mb-4">
+        {featuredSpecimen ? <section className="mb-6">
+          <div className="flex justify-between items-center mb-3"><h2 className="font-bold text-sm">Featured specimen</h2>{isOwner && <Link className="link text-xs" to="/specimens">Change specimen</Link>}</div>
+          <SpecimenCollectionCard specimen={featuredSpecimen} />
+        </section> : isOwner && <section className="card bg-base-100 shadow mb-4"><div className="card-body p-4"><h2 className="font-bold text-sm">Make this profile yours</h2><p className="text-sm text-base-content/60">Choose a specimen from your collection to feature here.</p><Link className="link text-sm" to="/specimens">Explore your specimens →</Link></div></section>}
+        {trophyCount > 0 && <section className="card bg-base-100 shadow mb-4">
           <div className="px-4 py-3 border-b border-base-200 flex items-center justify-between">
             <h2 className="font-bold text-sm">Bounty trophies</h2>
-            <span className="badge badge-primary">{trophyCount}</span>
+            <Link className="link text-xs" to="/bounties">Archive · {trophyCount} earned</Link>
           </div>
-          {trophies.length === 0 ? <div className="card-body py-6 text-sm text-base-content/40">No UUID bounties claimed yet.</div> : <div className="card-body p-4 gap-2">{trophies.map((trophy) => <ProfileTrophy key={trophy.claimId} trophy={trophy} />)}</div>}
-        </section>
+          <div className="card-body p-4 gap-2">{trophies.map((trophy) => <ProfileTrophy key={trophy.claimId} trophy={trophy} />)}</div>
+        </section>}
         <section className="card bg-base-100 shadow">
           <div className="px-4 py-3 border-b border-base-200"><h2 className="font-bold text-sm">Records</h2></div>
           {records.length === 0 ? <div className="card-body items-center py-12 text-center"><p className="text-base-content/40">No records yet.</p></div> : records.map((record, index) => <RecordCard key={record.id} record={record} className={index < records.length - 1 ? "border-b border-base-200" : ""} />)}

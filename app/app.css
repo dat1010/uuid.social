@@ -262,3 +262,10 @@
   .admin-user-hero { align-items: start; flex-wrap: wrap; }
   .admin-user-hero .ml-auto { margin-left: 0; }
 }
+
+.specimen-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; margin-bottom: 1.5rem; padding: 1rem; border: 1px solid var(--color-base-300); background: var(--color-base-100); }
+.specimen-filters label { display: grid; gap: .4rem; flex: 1 1 10rem; font-size: .65rem; font-weight: 800; letter-spacing: .05em; }
+.specimen-filters .specimen-filter-search { flex: 2 1 15rem; }
+.specimen-collection-entry { display: flex; min-width: 0; flex-direction: column; }
+.specimen-collection-entry > .specimen-collection-card { flex: 1; }
+.specimen-feature-action { padding: .75rem; border: 1px solid var(--color-base-300); border-top: 0; background: var(--color-base-100); }

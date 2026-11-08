@@ -21,6 +21,9 @@ export const users = sqliteTable(
     bio: text("bio"),
     avatarKey: text("avatar_key"),
     websiteUrl: text("website_url"),
+    featuredRecordId: text("featured_record_id").references(
+      (): AnySQLiteColumn => records.id,
+    ),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
     suspendedAt: integer("suspended_at", { mode: "timestamp_ms" }),

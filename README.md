@@ -13,12 +13,13 @@ UUID, shown once during signup. Losing it means losing access to that account.
 - UUID-only signup and login
 - One-time UUID reveal with copy support
 - Server-side sessions stored in Cloudflare D1
-- Public global timeline
+- Everyone and Following feeds with pagination and record/reply search
 - D1-backed records associated with authenticated users
 - Public record UUID permalinks
 - UUID-addressed replies and record threads
 - Immutable records that authors can soft-delete
-- Daily and weekly UUID bounties with public winner trophies
+- Filterable, paginated specimen collections with a featured specimen on profiles
+- Historical bounty archives and preserved winner trophies
 - Logout and protected app routes
 - Automatic production deploys from `main`
 
@@ -160,7 +161,7 @@ order. Review generated SQL before committing or applying it remotely.
 | `app/routes.ts` | Application route manifest |
 | `app/routes/` | React Router pages, loaders, and actions |
 | `app/components/` | Shared UI components |
-| `app/services/` | Authentication and bounty domain logic |
+| `app/services/` | Authentication, feeds, specimens, social features, and historical bounty logic |
 | `app/db/schema.ts` | Drizzle schema for D1 |
 | `workers/app.ts` | Cloudflare Worker entry point and `www` redirect |
 | `migrations/` | Ordered D1 SQL migrations |
@@ -174,8 +175,9 @@ Pushing to `main` runs `.github/workflows/deploy.yml`. The workflow:
 
 1. Installs dependencies with `npm ci`.
 2. Runs the TypeScript checks.
-3. Applies pending remote D1 migrations.
-4. Deploys the Worker to Cloudflare.
+3. Runs the test suite.
+4. Applies pending remote D1 migrations.
+5. Deploys the Worker to Cloudflare.
 
 GitHub repository secrets:
 
@@ -204,3 +206,18 @@ Do not rotate or delete the production `AUTH_PEPPER` after accounts exist.
 Changing it makes every existing UUID hash unverifiable.
 
 More operational details are in [`docs/setup.md`](docs/setup.md).
+
+## Bounty retirement
+
+The app no longer generates daily or weekly bounties. Existing bounties remain
+claimable until their original deadline at `/bounties` or their permanent links.
+The archive, earned trophies, claims, and graph connections remain intact.
+
+Migration `0009_add_featured_specimen.sql` adds the optional profile specimen.
+Apply it before running this version. Only the owner's active records and replies
+can be featured; deleted specimens are automatically hidden from profiles.
+
+Specimen pages return at most 24 identities. Global rarity ordering, filters, and
+counts currently read the owner's active record IDs and derive each identity once
+per request. Persisting indexed specimen metadata is a future scaling option if
+collections grow enough to make that scan expensive.

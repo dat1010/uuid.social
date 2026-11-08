@@ -9,7 +9,7 @@ import {
   formatBountyPrompt,
   type BountyRuleType,
 } from "../services/bounty";
-import { claimBounty, ensureCurrentBounties } from "../services/bounties.server";
+import { claimBounty } from "../services/bounties.server";
 import { getCloudflareEnv } from "../services/cloudflare.server";
 import { deriveClaimSpecimenDistinction } from "../services/bounty-specimen";
 
@@ -32,15 +32,14 @@ type BountyRow = {
 
 export function meta() {
   return [
-    { title: "UUID Bounties | uuid.social" },
-    { name: "description", content: "Hunt strange record UUIDs and earn trophies." },
+    { title: "Bounty archive | uuid.social" },
+    { name: "description", content: "Historical UUID bounties and earned trophies." },
   ];
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const env = getCloudflareEnv(context);
   const now = new Date();
-  await ensureCurrentBounties(env.DB, now);
   const currentUser = await getCurrentUser(request, context);
   const url = new URL(request.url);
   const page = Math.max(1, Number.parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
@@ -105,21 +104,21 @@ export default function Bounties({ loaderData, actionData }: Route.ComponentProp
 
       <main className="max-w-4xl mx-auto px-4 py-8 lg:px-8">
         <div className="mb-8">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Public record hunt</p>
-          <h1 className="text-3xl font-bold mt-2">UUID Bounties</h1>
-          <p className="text-sm text-base-content/60 mt-2 max-w-2xl">Find peculiar public record UUIDs. Account login UUIDs are private credentials and never participate.</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">From the archive</p>
+          <h1 className="text-3xl font-bold mt-2">Bounty archive</h1>
+          <p className="text-sm text-base-content/60 mt-2 max-w-2xl">Daily and weekly bounties have been retired. Existing hunts remain claimable until their original deadline. Earned trophies and historical links stay here.</p>
         </div>
 
         <section className="grid md:grid-cols-2 gap-4 mb-10">
           {active.length === 0 ? (
-            <div className="card bg-base-100 shadow md:col-span-2"><div className="card-body"><p>No solvable bounty is available yet. More records will unlock the hunt.</p></div></div>
+            <div className="card bg-base-100 shadow md:col-span-2"><div className="card-body"><p>There are no remaining active bounties. Explore your specimens or browse past hunts below.</p></div></div>
           ) : active.map((bounty) => (
             <BountyCard key={bounty.id} bounty={bounty} currentUser={currentUser} actionData={actionData} isSubmitting={navigation.formData?.get("bountyId") === bounty.id} />
           ))}
         </section>
 
         <section>
-          <h2 className="font-bold text-xl mb-4">Bounty archive</h2>
+          <h2 className="font-bold text-xl mb-4">Past hunts</h2>
           <div className="card bg-base-100 shadow divide-y divide-base-200">
             {archive.length === 0 ? <div className="card-body text-base-content/50">No retired bounties yet.</div> : archive.map((bounty) => <ArchiveRow key={bounty.id} bounty={bounty} />)}
           </div>
