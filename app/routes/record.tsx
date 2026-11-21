@@ -5,7 +5,7 @@ import { data, Form, Link, redirect, useNavigation, useSearchParams } from "reac
 import type { Route } from "./+types/record";
 import { RecordComposer } from "../components/RecordComposer";
 import { getRecordImages } from "../services/media.server";
-import { parseRecordInput } from "../services/media";
+import { imageUrl, parseRecordInput } from "../services/media";
 import { publishRecord } from "../services/publish-record.server";
 import { RecordCard } from "../components/RecordCard";
 import { RecordSpecimen } from "../components/RecordSpecimen";
@@ -26,10 +26,30 @@ export function meta({ data }: Route.MetaArgs) {
   const title = data?.record.id
     ? `Record ${data.record.id} | uuid.social`
     : "Record | uuid.social";
+  const defaultDescription = "A record on uuid.social.";
+  if (!data?.shareUrl) {
+    return [{ title }, { name: "description", content: defaultDescription }];
+  }
+
+  const { record, shareUrl, isReply } = data;
+  const image = record.images.find(({ width, height }) => width >= 150 && height >= 150);
+  const description = record.body.replace(/\s+/g, " ").trim() || image?.alt || defaultDescription;
+  const previewImagePath = image ? imageUrl(image.id, "full") : "/record-preview.png";
 
   return [
     { title },
-    { name: "description", content: "A record on uuid.social." },
+    { name: "description", content: description },
+    { property: "og:title", content: `${isReply ? "Reply" : "Record"} by @${record.username}` },
+    { property: "og:description", content: description },
+    { property: "og:type", content: "website" },
+    { property: "og:site_name", content: "uuid.social" },
+    { property: "og:url", content: shareUrl },
+    { property: "og:image", content: new URL(previewImagePath, shareUrl).href },
+    { property: "og:image:type", content: image ? "image/webp" : "image/png" },
+    { property: "og:image:width", content: String(image?.width ?? 1200) },
+    { property: "og:image:height", content: String(image?.height ?? 630) },
+    { property: "og:image:alt", content: image ? image.alt || "Image attached to the record" : "A mirrored specimen sigil" },
+    { name: "twitter:card", content: "summary_large_image" },
   ];
 }
 
@@ -53,6 +73,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
         username: users.username,
         displayName: users.displayName,
         avatarKey: users.avatarKey,
+        suspendedAt: users.suspendedAt,
         body: records.body,
         eventNumber: records.eventNumber,
         createdAt: records.createdAt,
@@ -94,7 +115,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     throw new Response("Not Found", { status: 404, statusText: "Not Found" });
   }
 
-  const { userId, parentRecordId, deletedAt, deletionOrigin, ...publicRecord } = record;
+  const { userId, parentRecordId, deletedAt, deletionOrigin, suspendedAt, ...publicRecord } = record;
   const deleted = deletedAt !== null;
   const images = await getRecordImages(env.DB, [uuid, ...replyRows.map(({ id }) => id)]);
 
@@ -106,6 +127,7 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
     parentRecordId,
     deleted,
     deletionOrigin,
+    shareUrl: deleted || suspendedAt !== null ? null : new URL(`/record/${uuid}`, request.url).href,
     connections,
     record: {
       ...publicRecord,
