@@ -219,7 +219,7 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
         <div className="navbar-end gap-2">
           <ThemeToggle />
           {currentUser && <Link className="btn btn-ghost btn-sm" to="/specimens">Specimens</Link>}
-          {currentUser ? (
+          {currentUser && (
             <>
               <Link className="btn btn-ghost btn-sm" to="/home">
                 Home
@@ -229,15 +229,6 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
                   Logout
                 </button>
               </Form>
-            </>
-          ) : (
-            <>
-              <Link className="btn btn-ghost btn-sm" to="/login">
-                Sign in
-              </Link>
-              <Link className="btn btn-primary btn-sm" to="/signup">
-                Sign up
-              </Link>
             </>
           )}
         </div>
@@ -266,15 +257,9 @@ export default function Record({ loaderData, actionData }: Route.ComponentProps)
         </div>
 
         <div className="record-thread-column">
-        {!deleted && <div className="card bg-base-100 shadow mb-4">
+        {!deleted && currentUser && <div className="card bg-base-100 shadow mb-4">
           <div className="card-body p-4">
-            {currentUser ? (
-              <RecordComposer key={record.id} action={`/record/${record.id}`} reply serverError={actionData?.error} />
-            ) : (
-              <p className="text-sm text-base-content/60">
-                <Link className="link" to="/login">Sign in</Link> to reply.
-              </p>
-            )}
+            <RecordComposer key={record.id} action={`/record/${record.id}`} reply serverError={actionData?.error} />
           </div>
         </div>}
 

@@ -6,6 +6,7 @@ import { Avatar } from "./Avatar";
 import { parseRecordText } from "../services/record-text";
 import { generateRecordIdentity } from "../services/record-identity";
 import { SpecimenSigil } from "./SpecimenSigil";
+import { ShareRecordLink } from "./ShareRecordLink";
 
 export type RecordCardData = {
   id: string;
@@ -50,12 +51,12 @@ export function RecordCard({ record, className = "", showSpecimenIdentity = true
         <RecordBody value={record.body} />
       </p>
       <ImageGallery images={record.images} />
-      <Link
-        className="link link-hover mt-4 inline-block text-xs text-base-content/60"
-        to={`/record/${record.id}`}
-      >
-        {record.replyCount} {record.replyCount === 1 ? "reply" : "replies"}
-      </Link>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3">
+        <Link className="link link-hover text-xs text-base-content/60" to={`/record/${record.id}`}>
+          {record.replyCount} {record.replyCount === 1 ? "reply" : "replies"}
+        </Link>
+        <ShareRecordLink recordId={record.id} />
+      </div>
       <p className="mt-4 text-xs text-base-content/50">
         {record.eventNumber !== null && <>Event #{record.eventNumber.toLocaleString("en-US")} · </>}
         Record UUID:{" "}

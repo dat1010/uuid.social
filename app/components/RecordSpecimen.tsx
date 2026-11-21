@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import type { RecordCardData } from "./RecordCard";
 import { RecordBody } from "./RecordCard";
+import { ShareRecordLink } from "./ShareRecordLink";
 import { SpecimenSigil } from "./SpecimenSigil";
 import { generateRecordIdentity } from "../services/record-identity";
 
@@ -39,6 +40,7 @@ export function RecordSpecimen({ record, deleted, deletionOrigin, parentRecordId
             {record.eventNumber !== null && <>Event #{record.eventNumber.toLocaleString("en-US")} · </>}
             <span>{record.id}</span>
           </p>
+          {!deleted && <div className="mt-2"><ShareRecordLink key={record.id} recordId={record.id} /></div>}
         </section>
         <details className="specimen-details" open={reveal || undefined}>
           <summary>Specimen details</summary>
